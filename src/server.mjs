@@ -1,4 +1,5 @@
 // src/server.mjs
+import chalk from 'chalk'; // Import chalk for colored coded console logs
 import express from 'express';
 import dotenv from 'dotenv';
 import apiRoutes from './routes/apiRoutes.mjs';
@@ -18,6 +19,7 @@ app.use(express.json());
 // Define root route
 app.get('/', (req, res) => {
   res.send('Server is up and running - CALL WORKS!');
+  console.log(chalk.magenta.bold('Server is up and running - CALL WORKS!'));
 });
 
 // Use the API routes
