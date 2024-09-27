@@ -1,5 +1,4 @@
 import rateLimit from "express-rate-limit";
-import ErrorResponse from "../models/ErrorResponseModel.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 
 
