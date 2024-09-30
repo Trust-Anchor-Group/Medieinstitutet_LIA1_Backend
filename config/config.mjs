@@ -10,6 +10,5 @@ export default {
     host: process.env.EXTERNAL_API_HOST,
     key: process.env.EXTERNAL_API_KEY,
     secret: process.env.EXTERNAL_API_SECRET,
-    neuronPassword: process.env.EXTERNAL_NEURON_PASSWORD,
   },
 };

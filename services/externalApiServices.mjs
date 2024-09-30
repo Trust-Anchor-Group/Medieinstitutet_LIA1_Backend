@@ -14,8 +14,8 @@ async function sign(secret, data) {
 }
 
 export async function createAccount(userData) {
-  const { UserName, EMail, PhoneNr } = userData;
-  const { host, key: ApiKey, secret: Secret, neuronPassword: Password } = config.externalApi;
+  const { UserName, EMail, PhoneNr, Password } = userData;
+  const { host, key: ApiKey, secret: Secret } = config.externalApi;
   const Seconds = 3600;
   const Nonce = generateNonce();
 
