@@ -1,3 +1,6 @@
+// ============================================================
+// = IMPORTS
+// ============================================================
 import chalk from 'chalk';
 import express from 'express';
 import dotenv from 'dotenv';
@@ -8,12 +11,19 @@ import hpp from 'hpp';
 import { generalLimiter } from './middleware/limitHandler.mjs';
 import authRouter from './routes/auth-routes.mjs';
 import config from './config/config.mjs';
+import { errorHandler } from './middleware/errorHandler.mjs';
 
+// ============================================================
+// = CONFIGURATION
+// ============================================================
 // Load env variables
 dotenv.config({ path: './config/.env' });
 
 const app = express();
 
+// ============================================================
+// = MIDDLEWARE
+// ============================================================
 // Body parser
 app.use(express.json());
 
@@ -36,7 +46,9 @@ app.use(generalLimiter);
 // Prevent HPP attacks (http parameter pollution)
 app.use(hpp());
 
-
+// ============================================================
+// = ROUTES
+// ============================================================
 // Define root route
 app.get('/', (req, res) => {
     res.send('Server is up and running - CALL WORKS!');
@@ -46,12 +58,22 @@ app.get('/', (req, res) => {
 // Endpoints
 app.use('/api/v1/auth', authRouter)
 
+// ============================================================
+// = ERROR HANDLING
+// ============================================================
+app.use(errorHandler);
+
+// ============================================================
+// = SERVER INITIALIZATION
+// ============================================================
 const PORT = process.env.PORT || 3000;
 const SERVER = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
-// Handle problems (Rejections) that are not being handled elsewhere in the application...
+// ============================================================
+// = UNHANDLED REJECTION HANDLER
+// ============================================================
 process.on('unhandledRejection', (err, promise) => {
     console.log(`Error: ${err.message}`);
     SERVER.close(() => process.exit(1));

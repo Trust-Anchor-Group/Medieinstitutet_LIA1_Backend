@@ -1,5 +1,5 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
-import ResponseModel from "../models/ResponseModel.mjs";
+import ErrorResponse from "../models/ErrorResponseModel.mjs";
 import { createAccount, verifyEmailService } from "../services/externalApiServices.mjs";
 
 /**
@@ -8,14 +8,11 @@ import { createAccount, verifyEmailService } from "../services/externalApiServic
  * @access Public
  */
 export const register = asyncHandler(async (req, res, next) => {
-    try{
-        const accountData = await createAccount(req.body);
-        res.status(201).json(new ResponseModel(200, accountData));
-    } catch (error){
-        const statusCode = error.response?.status || 500;
-        const errorMessage = error.response?.data?.error || error.message || 'An error occured while creating the account';
-        res.status(statusCode).json(new ResponseModel(statusCode, { error: errorMessage }));
-    }
+    const accountData = await createAccount(req.body);
+    res.status(201).json({
+        success: true,
+        data: accountData
+    });
 });
 
 /**
@@ -24,18 +21,13 @@ export const register = asyncHandler(async (req, res, next) => {
  * @access Public
  */
 export const verifyEmail = asyncHandler(async (req, res, next) => {
-    try {
-        const { email, code } = req.body;
-        const verificationData = await verifyEmailService(email, code);
-        res.status(200).json(new ResponseModel(200, { 
-            message: 'Email verified successfully',
-            data: verificationData 
-        }));
-    } catch (error) {
-        const statusCode = error.response?.status || 500;
-        const errorMessage = error.response?.data?.error || error.message || 'An error occurred while verifying the email';
-        res.status(statusCode).json(new ResponseModel(statusCode, { error: errorMessage }));
-    }
+    const { email, code } = req.body;
+    const verificationData = await verifyEmailService(email, code);
+    res.status(200).json({
+        success: true,
+        message: 'Email verified successfully',
+        data: verificationData
+    });
 });
 
 /**
@@ -44,5 +36,8 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
  * @access Public
  */
 export const login = asyncHandler(async (req, res, next) => {
-    res.status(200).json(new ResponseModel(200, 'Login Successful'));
+    res.status(200).json({
+        success: true,
+        message: 'Login Successful'
+    });
 });
