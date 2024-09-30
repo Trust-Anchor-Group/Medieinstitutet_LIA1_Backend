@@ -44,3 +44,20 @@ export async function createAccount(userData) {
 
   return response.data;
 }
+
+export async function verifyEmailService(email, code) {
+  const { host } = config.externalApi;
+
+  const payload = {
+    eMail: email,
+    code: parseInt(code, 10)
+  };
+
+  const url = `https://${host}/Agent/Account/VerifyEMail`;
+  
+  const response = await axios.post(url, payload, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  return response.data;
+}
