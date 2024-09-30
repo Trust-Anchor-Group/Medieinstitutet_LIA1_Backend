@@ -50,7 +50,7 @@ export async function createAccount(userData) {
     }
 }
 
-export async function verifyEmailService(email, code) {
+export async function verifyEmailService(email, code, jwt) {
     const { host } = config.externalApi;
 
     const payload = {
@@ -62,10 +62,23 @@ export async function verifyEmailService(email, code) {
     
     try {
         const response = await axios.post(url, payload, {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${jwt}`
+            }
         });
         return response.data;
     } catch (error) {
-        throw new ErrorResponse(error.response?.data?.error || 'Failed to verify email', error.response?.status || 500);
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            throw new ErrorResponse(error.response.status, error.response.data.error || 'Failed to verify email');
+        } else if (error.request) {
+            // The request was made but no response was received
+            throw new ErrorResponse(500, 'No response received from server');
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            throw new ErrorResponse(500, 'Error setting up the request');
+        }
     }
 }

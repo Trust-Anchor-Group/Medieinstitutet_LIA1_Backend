@@ -22,7 +22,19 @@ export const register = asyncHandler(async (req, res, next) => {
  */
 export const verifyEmail = asyncHandler(async (req, res, next) => {
     const { email, code } = req.body;
-    const verificationData = await verifyEmailService(email, code);
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        throw new ErrorResponse(401, 'Authorization header is missing');
+    }
+
+    const [bearer, jwt] = authHeader.split(' ');
+
+    if (bearer !== 'Bearer' || !jwt) {
+        throw new ErrorResponse(401, 'Invalid authorization header format');
+    }
+
+    const verificationData = await verifyEmailService(email, code, jwt);
     res.status(200).json({
         success: true,
         message: 'Email verified successfully',
