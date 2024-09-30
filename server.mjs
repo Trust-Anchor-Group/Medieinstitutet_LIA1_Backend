@@ -38,6 +38,12 @@ app.use(hpp());
 app.use('/api/v1/auth', authRouter)
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const SERVER = app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+});
+
+// Handle problems (Rejections) that are not being handled elsewhere in the application...
+process.on('unhandledRejection', (err, promise) => {
+    console.log(`Error: ${err.message}`);
+    SERVER.close(() => process.exit(1));
 });

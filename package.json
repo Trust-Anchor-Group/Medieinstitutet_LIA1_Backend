@@ -19,6 +19,7 @@
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.1.0",
     "hpp": "^0.2.3",
+    "winston": "^3.14.2",
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
