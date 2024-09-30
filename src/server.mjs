@@ -1,20 +1,21 @@
 // src/server.mjs
-import chalk from 'chalk'; // Import chalk for colored coded console logs
+import chalk from 'chalk';
 import express from 'express';
 import dotenv from 'dotenv';
-import apiRoutes from './routes/apiRoutes.mjs';
+import AgentAPI from './agentApi/agentApi.mjs';
+import routes from './routes/index.mjs';
 
-// Load environment variables from .env file
 dotenv.config();
 
-// Initialize Express application
 const app = express();
-
-// Set the port for the server, use the PORT env variable if available, otherwise default to 3000
 const port = process.env.PORT || 3000;
 
-// Middleware to parse JSON bodies
+// Middleware
 app.use(express.json());
+
+// Configure AgentAPI
+AgentAPI.Host = process.env.EXTERNAL_API_HOST;
+AgentAPI.Domain = `https://${process.env.EXTERNAL_API_HOST}`;
 
 // Define root route
 app.get('/', (req, res) => {
@@ -22,8 +23,14 @@ app.get('/', (req, res) => {
   console.log(chalk.magenta.bold('Server is up and running - CALL WORKS!'));
 });
 
-// Use the API routes
-app.use('/api', apiRoutes);
+// Use the combined routes
+app.use('/api', routes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
 
 // Start the server
 app.listen(port, () => {
