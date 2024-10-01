@@ -29,6 +29,7 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
     }
 
     const [bearer, jwt] = authHeader.split(' ');
+    //console.log('token:', bearer, jwt);
 
     if (bearer !== 'Bearer' || !jwt) {
         throw new ErrorResponse(401, 'Invalid authorization header format');

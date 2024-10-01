@@ -64,7 +64,7 @@ export async function verifyEmailService(email, code, jwt) {
         const response = await axios.post(url, payload, {
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${jwt}`
+              'Authorization': `${jwt}`
             }
         });
         return response.data;
@@ -72,6 +72,7 @@ export async function verifyEmailService(email, code, jwt) {
         if (error.response) {
             // The request was made and the server responded with a status code
             // that falls out of the range of 2xx
+            //console.error('Email verification error:', error.response?.data || error.message);
             throw new ErrorResponse(error.response.status, error.response.data.error || 'Failed to verify email');
         } else if (error.request) {
             // The request was made but no response was received

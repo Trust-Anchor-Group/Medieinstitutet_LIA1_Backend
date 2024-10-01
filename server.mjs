@@ -29,7 +29,7 @@ app.use(express.json());
 
 // Enable CORS for specified origin
 const corsOptions = {
-    origin: config.CLIENT_URL,
+    origin: config.clientUrl,
     optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
