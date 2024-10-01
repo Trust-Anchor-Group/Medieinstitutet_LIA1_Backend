@@ -1,7 +1,8 @@
 // src/config/config.mjs
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Load env variables
+dotenv.config({ path: './.env' });
 
 export default {
   port: process.env.PORT || 3000,
