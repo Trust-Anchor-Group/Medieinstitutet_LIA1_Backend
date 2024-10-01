@@ -5,7 +5,7 @@ import ErrorResponse from "../models/ErrorResponseModel.mjs";
 
 // Utility function for consistent error responses
 const sendErrorResponse = (res, statusCode, message) => {
-  const errorResponse = new ErrorResponse(message, statusCode);
+  const errorResponse = new ErrorResponse(statusCode, message );
   res.status(statusCode).json({
     success: false,
     error: errorResponse.message

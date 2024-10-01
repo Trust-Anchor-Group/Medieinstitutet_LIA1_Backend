@@ -46,7 +46,39 @@ export async function createAccount(userData) {
         });
         return response.data;
     } catch (error) {
-        throw new ErrorResponse(error.response?.data?.error || 'Failed to create account', error.response?.status || 500);
+        throw new ErrorResponse(error.response?.status || 500, error.response?.data?.error || 'Failed to create account');
+    }
+}
+
+
+export async function loginAccount(userData) {
+    const { userName, password } = userData;
+    const { host } = config.externalApi;
+    const Seconds = 3600;
+    const Nonce = generateNonce();
+
+    const s = `${userName}:${host}:${Nonce}`;
+
+    const key = Buffer.from(password, 'utf-8');
+    const data = Buffer.from(s, 'utf-8');
+    const signature = await sign(key, data);
+
+    const payload = {
+        userName: userName,
+        nonce: Nonce,
+        signature: signature,
+        seconds: Seconds
+    };
+
+    const url = `https://${host}/Agent/Account/Login`;
+    
+    try {
+        const response = await axios.post(url, payload, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        return response.data;
+    } catch (error) {
+        throw new ErrorResponse(error.response?.status || 500, error.response?.data?.error || 'Failed to login');
     }
 }
 

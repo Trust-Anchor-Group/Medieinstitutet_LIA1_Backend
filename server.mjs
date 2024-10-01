@@ -27,12 +27,12 @@ const app = express();
 // Body parser
 app.use(express.json());
 
-// Enable CORS for specified origin
+// Enable CORS for specified origins
 const corsOptions = {
-    origin: config.clientUrl,
+    origin: config.clientUrl.split(','),
     optionsSuccessStatus: 200,
-};
-app.use(cors(corsOptions));
+  };
+  app.use(cors(corsOptions));
 
 // Secure app with HTTP headers
 app.use(helmet());
@@ -75,6 +75,6 @@ const SERVER = app.listen(PORT, () => {
 // = UNHANDLED REJECTION HANDLER
 // ============================================================
 process.on('unhandledRejection', (err, promise) => {
-    console.log(`Error: ${err.message}`);
-    SERVER.close(() => process.exit(1));
+    console.log(`Unhandled Rejection, Error: ${err.message}`);
+   // SERVER.close(() => process.exit(1));
 });

@@ -1,6 +1,6 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-import { createAccount, verifyEmailService } from "../services/externalApiServices.mjs";
+import { createAccount, verifyEmailService, loginAccount } from "../services/externalApiServices.mjs";
 
 /**
  * @desc Register user
@@ -49,8 +49,17 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
  * @access Public
  */
 export const login = asyncHandler(async (req, res, next) => {
+    const { userName, password } = req.body;
+
+    if (!userName || !password) {
+        return next(new ErrorResponse(400, 'Please provide a username and password'));
+    }
+
+    const loginData = await loginAccount({ userName, password });
+
     res.status(200).json({
         success: true,
-        message: 'Login Successful'
+        message: 'Login Successful',
+        data: loginData
     });
 });
