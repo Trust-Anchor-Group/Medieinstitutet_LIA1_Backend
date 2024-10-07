@@ -1,6 +1,7 @@
+// src/middleware/limitHandler.mjs
+
 import rateLimit from "express-rate-limit";
 import ResponseModel from "../models/ResponseModel.mjs";
-
 
 // Todo: look over them and set appropriate limits
 export const generalLimiter = rateLimit({
@@ -21,7 +22,7 @@ export const loginLimiter = rateLimit({
 
 export const registerLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    limit: 5, // Limit each IP to 5 register requests
+    limit: 5000, // Limit each IP to 5 register requests
     handler: (req, res, next) => {
         res.status(429).json(new ResponseModel(429, 'Too many registration requests, please try again later'));
     }

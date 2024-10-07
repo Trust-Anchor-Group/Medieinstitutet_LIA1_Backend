@@ -1,7 +1,7 @@
-// src/config/config.mjs
 import dotenv from 'dotenv';
 
-// Load env variables
+
+// Load env variable
 dotenv.config({ path: './.env' });
 
 export default {
