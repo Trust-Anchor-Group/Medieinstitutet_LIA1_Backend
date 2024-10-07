@@ -1,6 +1,5 @@
 // src/services/externalApiServices.mjs
 
-import axios from 'axios';
 import crypto from 'crypto';
 import config from '../config/config.mjs';
 import ErrorResponse from '../models/ErrorResponseModel.mjs';
@@ -15,39 +14,65 @@ async function sign(secret, data) {
     return hmac.digest('base64');
 }
 
-export async function createAccount(userData) {
-    const { UserName, EMail, PhoneNr, Password } = userData;
-    const { host, key: ApiKey, secret: Secret } = config.externalApi;
-    const Seconds = 3600;
-    const Nonce = generateNonce();
+export const createAccount = async (userData) => {
+    const { username, email, phoneNr, password } = userData;
+    const { host, key: apiKey, secret: Secret } = config.externalApi;
+    const seconds = 3600;
+    const nonce = generateNonce();
 
-    const s = PhoneNr
-        ? `${UserName}:${host}:${EMail}:${PhoneNr}:${Password}:${ApiKey}:${Nonce}`
-        : `${UserName}:${host}:${EMail}:${Password}:${ApiKey}:${Nonce}`;
+    const s = phoneNr
+        ? `${username}:${host}:${email}:${phoneNr}:${password}:${apiKey}:${nonce}`
+        : `${username}:${host}:${email}:${password}:${apiKey}:${nonce}`;
 
     const signature = await sign(Secret, s);
 
     const payload = {
-        userName: UserName,
-        eMail: EMail,
-        phoneNr: PhoneNr,
-        password: Password,
-        apiKey: ApiKey,
-        nonce: Nonce,
-        signature: signature,
-        seconds: Seconds
+        userName: username,
+        eMail: email,
+        phoneNr,
+        password,
+        apiKey,
+        nonce,
+        signature,
+        seconds
     };
 
     const url = `https://${host}/Agent/Account/Create`;
-    
+
     try {
-        const response = await axios.post(url, payload, {
-            headers: { 'Content-Type': 'application/json' },
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
         });
-        return response.data;
+
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+
+            throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
+        }
+
+        const responseData = await response.json();
+        return responseData;
+
     } catch (error) {
-        throw new ErrorResponse(error.response?.data?.error || 'Failed to create account', error.response?.status || 500);
+
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+
+        throw error;
     }
+
 }
 
 export async function verifyEmailService(email, code, jwt) {
@@ -59,27 +84,37 @@ export async function verifyEmailService(email, code, jwt) {
     };
 
     const url = `https://${host}/Agent/Account/VerifyEMail`;
-    
+
     try {
-        const response = await axios.post(url, payload, {
+        const response = await fetch(url, {
+            method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `${jwt}`
-            }
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwt}`
+            },
+            body: JSON.stringify(payload)
         });
-        return response.data;
-    } catch (error) {
-        if (error.response) {
-            // The request was made and the server responded with a status code
-            // that falls out of the range of 2xx
-            //console.error('Email verification error:', error.response?.data || error.message);
-            throw new ErrorResponse(error.response.status, error.response.data.error || 'Failed to verify email');
-        } else if (error.request) {
-            // The request was made but no response was received
-            throw new ErrorResponse(500, 'No response received from server');
-        } else {
-            // Something happened in setting up the request that triggered an Error
-            throw new ErrorResponse(500, 'Error setting up the request');
+
+        if (!response.ok) {
+
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+            throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
         }
+
+        const responseData = await response.json();
+        return responseData;
+    } catch (error) {
+
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+
+        throw error;
     }
 }

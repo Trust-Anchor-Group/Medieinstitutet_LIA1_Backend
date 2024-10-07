@@ -1,4 +1,5 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
+import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
 import { createAccount, verifyEmailService } from "../services/externalApiServices.mjs";
 
@@ -8,11 +9,12 @@ import { createAccount, verifyEmailService } from "../services/externalApiServic
  * @access Public
  */
 export const register = asyncHandler(async (req, res, next) => {
-    const accountData = await createAccount(req.body);
-    res.status(201).json({
-        success: true,
-        data: accountData
-    });
+    try {
+        const accountData = await createAccount(req.body);
+        res.status(201).json(new ResponseModel(201, 'Account registred', accountData));
+    } catch (error) {
+        next(error);
+    }
 });
 
 /**
@@ -22,7 +24,8 @@ export const register = asyncHandler(async (req, res, next) => {
  */
 export const verifyEmail = asyncHandler(async (req, res, next) => {
     const { email, code } = req.body;
-    const authHeader = req.headers.authorization;
+    // console.log('Header', req.headers);
+    const authHeader = req.headers['authorization'];
 
     if (!authHeader) {
         throw new ErrorResponse(401, 'Authorization header is missing');
@@ -32,15 +35,17 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
     //console.log('token:', bearer, jwt);
 
     if (bearer !== 'Bearer' || !jwt) {
-        throw new ErrorResponse(401, 'Invalid authorization header format');
+        throw new ErrorResponse(401, 'Invalid authorization header format', 'internal');
     }
 
-    const verificationData = await verifyEmailService(email, code, jwt);
-    res.status(200).json({
-        success: true,
-        message: 'Email verified successfully',
-        data: verificationData
-    });
+    try {
+        const verificationData = await verifyEmailService(email, code, jwt);
+        res.status(200).json(new ResponseModel(200, 'Email verified successfully', verificationData));
+    } catch (error) {
+        next(error);
+    }
+
+
 });
 
 /**

@@ -13,12 +13,6 @@ import authRouter from './routes/auth-routes.mjs';
 import config from './config/config.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
 
-// ============================================================
-// = CONFIGURATION
-// ============================================================
-// Load env variables
-dotenv.config({ path: './config/.env' });
-
 const app = express();
 
 // ============================================================
@@ -53,8 +47,8 @@ app.use(hpp());
 app.get('/', (req, res) => {
     res.send('Server is up and running - CALL WORKS!');
     console.log(chalk.magenta.bold('Server is up and running - CALL WORKS!'));
-  });
-  
+});
+
 // Endpoints
 app.use('/api/v1/auth', authRouter)
 
@@ -75,6 +69,6 @@ const SERVER = app.listen(PORT, () => {
 // = UNHANDLED REJECTION HANDLER
 // ============================================================
 process.on('unhandledRejection', (err, promise) => {
-    console.log(`Error: ${err.message}`);
-    SERVER.close(() => process.exit(1));
+    console.log(`Unhandled error: ${err.message}`);
+    //SERVER.close(() => process.exit(1));
 });
