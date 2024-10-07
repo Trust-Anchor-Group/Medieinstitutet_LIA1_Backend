@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 
+
+// Load env variable
 dotenv.config({ path: './.env' });
 
 export default {
