@@ -2,6 +2,7 @@ import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
 import { createAccount, verifyEmailService } from "../services/externalApiServices.mjs";
+import CookieHandler from "../utilities/CookieHandler.mjs";
 
 /**
  * @desc Register user
@@ -10,8 +11,13 @@ import { createAccount, verifyEmailService } from "../services/externalApiServic
  */
 export const register = asyncHandler(async (req, res, next) => {
     try {
-        const accountData = await createAccount(req.body);
-        res.status(201).json(new ResponseModel(201, 'Account registred', accountData));
+        const response = await createAccount(req.body);
+
+        const cookie = new CookieHandler(res);
+        const { jwt } = response;
+        cookie.setCookie('tagRegistration', { jwt });
+
+        res.status(201).json(new ResponseModel(201, 'Account registred', response));
     } catch (error) {
         next(error);
     }
@@ -24,27 +30,30 @@ export const register = asyncHandler(async (req, res, next) => {
  */
 export const verifyEmail = asyncHandler(async (req, res, next) => {
     const { email, code } = req.body;
-    // console.log('Header', req.headers);
-    const authHeader = req.headers['authorization'];
 
-    if (!authHeader) {
-        throw new ErrorResponse(401, 'Authorization header is missing');
+    const cookie = req.cookies.tagRegistration;
+    let cookieData;
+
+    if (cookie) {
+        try {
+            cookieData = JSON.parse(cookie);
+        } catch (error) {
+            throw new ErrorResponse(401, 'Invalid cookie data', 'internal');
+        }
     }
 
-    const [bearer, jwt] = authHeader.split(' ');
-    //console.log('token:', bearer, jwt);
+    const [bearer, jwt] = cookieData.jwt.split(' ');
 
     if (bearer !== 'Bearer' || !jwt) {
         throw new ErrorResponse(401, 'Invalid authorization header format', 'internal');
     }
 
     try {
-        const verificationData = await verifyEmailService(email, code, jwt);
+        const verificationData = await verifyEmailService(email, code, cookieData.jwt);
         res.status(200).json(new ResponseModel(200, 'Email verified successfully', verificationData));
     } catch (error) {
         next(error);
     }
-
 
 });
 

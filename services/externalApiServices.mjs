@@ -90,7 +90,7 @@ export async function verifyEmailService(email, code, jwt) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${jwt}`
+                'Authorization': `${jwt}`
             },
             body: JSON.stringify(payload)
         });
