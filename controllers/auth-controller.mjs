@@ -1,7 +1,7 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-import { createAccount, verifyEmailService } from "../services/externalApiServices.mjs";
+import { createAccount, verifyEmailService, loginService } from "../services/externalApiServices.mjs";
 import CookieHandler from "../utilities/CookieHandler.mjs";
 
 /**
@@ -65,8 +65,12 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
  * @access Public
  */
 export const login = asyncHandler(async (req, res, next) => {
-    res.status(200).json({
-        success: true,
-        message: 'Login Successful'
-    });
+    try {
+        const data = await loginService(req.body);
+        const cookie = new CookieHandler(res);
+        cookie.setCookie('auth', { jwt: data.jwt });
+        res.status(200).json(new ResponseModel(200, 'Login successful', data));
+    } catch (error) {
+        next(error);
+    }
 });
