@@ -15,7 +15,7 @@ export const register = asyncHandler(async (req, res, next) => {
 
         const cookie = new CookieHandler(res);
         const { jwt } = response;
-        cookie.setCookie('tagRegistration', { jwt });
+        cookie.setCookie('registration', { jwt });
 
         res.status(201).json(new ResponseModel(201, 'Account registred', response));
     } catch (error) {
@@ -31,7 +31,7 @@ export const register = asyncHandler(async (req, res, next) => {
 export const verifyEmail = asyncHandler(async (req, res, next) => {
     const { email, code } = req.body;
 
-    const cookie = req.cookies.tagRegistration;
+    let cookie = req.cookies.registration;
     let cookieData;
 
     if (cookie) {
@@ -45,11 +45,13 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
     const [bearer, jwt] = cookieData.jwt.split(' ');
 
     if (bearer !== 'Bearer' || !jwt) {
-        throw new ErrorResponse(401, 'Invalid authorization header format', 'internal');
+        throw new ErrorResponse(401, 'Invalid authorization format', 'internal');
     }
 
     try {
         const verificationData = await verifyEmailService(email, code, cookieData.jwt);
+        cookie = new CookieHandler(res);
+        cookie.deleteCookie('registration');
         res.status(200).json(new ResponseModel(200, 'Email verified successfully', verificationData));
     } catch (error) {
         next(error);

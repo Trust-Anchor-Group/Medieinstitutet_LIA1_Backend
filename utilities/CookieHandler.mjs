@@ -4,6 +4,9 @@ export default class CookieHandler {
 
     constructor(res) {
         this.res = res;
+        this.httpOnly = true;
+        this.secure = false; //todo: change to true for https
+        this.sameSite = 'Lax'; //todo: change to 'Strict' for production
     }
 
     /**
@@ -26,11 +29,21 @@ export default class CookieHandler {
         }
 
         // Secure cookie data
-        options.httpOnly = options.httpOnly !== undefined ? options.httpOnly : true;
-        options.secure = options.secure !== undefined ? options.secure : false; //todo: change to true for https
-        options.sameSite = options.sameSite !== undefined ? options.sameSite : 'Lax'; //todo: change to 'Strict' for production
+        options.httpOnly = options.httpOnly !== undefined ? options.httpOnly : this.httpOnly;
+        options.secure = options.secure !== undefined ? options.secure : this.secure;
+        options.sameSite = options.sameSite !== undefined ? options.sameSite : this.sameSite;
 
-        this.res.cookie(cookieName.toLowerCase(), JSON.stringify(cookieData), options);
+        this.res.cookie(cookieName, JSON.stringify(cookieData), options);
+    }
+
+    deleteCookie(cookieName, options = {}) {
+
+        // Secure cookie data
+        options.httpOnly = options.httpOnly !== undefined ? options.httpOnly : this.httpOnly;
+        options.secure = options.secure !== undefined ? options.secure : this.secure;
+        options.sameSite = options.sameSite !== undefined ? options.sameSite : this.sameSite;
+
+        this.res.clearCookie(cookieName, options);
     }
 
 }
