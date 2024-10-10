@@ -1,7 +1,7 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-import { createAccount, verifyEmailService, loginService } from "../services/externalApiServices.mjs";
+import { createAccount, verifyEmailService, loginService, userInfo } from "../services/externalApiServices.mjs";
 import CookieHandler from "../utilities/CookieHandler.mjs";
 
 /**
@@ -73,4 +73,27 @@ export const login = asyncHandler(async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+});
+
+/**
+ * @desc Get user info
+ * @route GET /api/v1/auth/account-info
+ * @access Private
+ */
+export const accountInfo = asyncHandler(async (req, res, next) => {
+    res.status(200).json(new ResponseModel(200, 'User info', { name: 'John Doe', email: '' }));
+    // console.log('Account info fired');
+    // const cookie = req.cookies.auth;
+    // const [bearer, jwt] = cookie.split(' ');
+
+    // if (bearer !== 'Bearer' && !jwt) {
+    //     throw new ErrorResponse(401, 'Invalid authorization format', 'internal');
+    // }
+
+    // try {
+    //     const data = await userInfo(jwt);
+    //     res.status(200).json(new ResponseModel(200, 'User info', data));
+    // } catch (error) {
+    //     next(error);
+    // }
 });

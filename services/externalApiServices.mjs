@@ -166,3 +166,79 @@ export const loginService = async (userData) => {
         throw error;
     }
 };
+
+
+export const authenticateJwt = async (jwt) => {
+    const { host } = config.externalApi;
+    const url = `https://${host}/Agent/Account/AuthenticateJwt`;
+    const payload = { token: jwt };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+            throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
+        }
+
+        const responseData = await response.json();
+        return responseData;
+    } catch (error) {
+
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+        throw error;
+
+    }
+}
+
+export const userInfo = async (jwt) => {
+
+    const url = `https://${host}/Agent/Account/Info`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': jwt
+            }
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+            throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
+        }
+
+        const responseData = await response.json();
+        return responseData;
+
+    } catch (error) {
+
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+        throw error;
+
+    }
+
+};
