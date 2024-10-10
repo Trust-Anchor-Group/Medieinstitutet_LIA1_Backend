@@ -14,14 +14,8 @@ export const protect = async (req, res, next) => {
         }
     }
 
-    const [bearer, jwt] = cookieData.jwt.split(' ');
-
-    if (bearer !== 'Bearer' || !jwt) {
-        return next(new ErrorResponse(401, 'Invalid authorization format', 'internal'));
-    }
-
     try {
-        await authenticateJwt(jwt);
+        await authenticateJwt(cookieData.jwt);
     } catch (error) {
         next(error);
     }

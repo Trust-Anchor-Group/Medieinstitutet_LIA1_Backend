@@ -42,12 +42,6 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
         }
     }
 
-    const [bearer, jwt] = cookieData.jwt.split(' ');
-
-    if (bearer !== 'Bearer' || !jwt) {
-        throw new ErrorResponse(401, 'Invalid authorization format', 'internal');
-    }
-
     try {
         const verificationData = await verifyEmailService(email, code, cookieData.jwt);
         cookie = new CookieHandler(res);
@@ -81,19 +75,14 @@ export const login = asyncHandler(async (req, res, next) => {
  * @access Private
  */
 export const accountInfo = asyncHandler(async (req, res, next) => {
-    res.status(200).json(new ResponseModel(200, 'User info', { name: 'John Doe', email: '' }));
-    // console.log('Account info fired');
-    // const cookie = req.cookies.auth;
-    // const [bearer, jwt] = cookie.split(' ');
 
-    // if (bearer !== 'Bearer' && !jwt) {
-    //     throw new ErrorResponse(401, 'Invalid authorization format', 'internal');
-    // }
+    const cookie = req.cookies.auth;
+    let cookieData = JSON.parse(cookie);
 
-    // try {
-    //     const data = await userInfo(jwt);
-    //     res.status(200).json(new ResponseModel(200, 'User info', data));
-    // } catch (error) {
-    //     next(error);
-    // }
+    try {
+        const data = await userInfo(cookieData.jwt);
+        res.status(200).json(new ResponseModel(200, 'User info', data));
+    } catch (error) {
+        next(error);
+    }
 });

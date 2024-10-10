@@ -25,7 +25,7 @@ export default class CookieHandler {
             decodedToken = jwtDecode(data.jwt);
             const expiresTimestamp = options.expires || decodedToken.exp * 1000;
             options.expires = new Date(expiresTimestamp);
-            cookieData.jwt = `Bearer ${data.jwt}`;
+            cookieData.jwt = data.jwt;
         }
 
         // Secure cookie data

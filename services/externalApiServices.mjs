@@ -90,7 +90,7 @@ export async function verifyEmailService(email, code, jwt) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `${jwt}`
+                'Authorization': `Bearer ${jwt}`
             },
             body: JSON.stringify(payload)
         });
@@ -206,16 +206,17 @@ export const authenticateJwt = async (jwt) => {
 }
 
 export const userInfo = async (jwt) => {
-
+    const { host } = config.externalApi;
     const url = `https://${host}/Agent/Account/Info`;
 
     try {
         const response = await fetch(url, {
-            method: 'GET',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': jwt
-            }
+                'Authorization': `Bearer ${jwt}`
+            },
+            body: JSON.stringify({})
         });
 
         if (!response.ok) {
