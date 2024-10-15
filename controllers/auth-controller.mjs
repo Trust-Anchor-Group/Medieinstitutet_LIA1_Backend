@@ -70,6 +70,17 @@ export const login = asyncHandler(async (req, res, next) => {
 });
 
 /**
+ * @desc Logout user
+ * @route GET /api/v1/auth/logout
+ * @access Public
+ */
+export const logout = asyncHandler(async (req, res, next) => {
+    const cookie = new CookieHandler(res);
+    cookie.deleteCookie('auth');
+    res.status(200).json(new ResponseModel(200, 'Logout successful', {}));
+});
+
+/**
  * @desc Get user info
  * @route GET /api/v1/auth/account-info
  * @access Private
@@ -85,4 +96,13 @@ export const accountInfo = asyncHandler(async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+});
+
+/**
+ * @desc Check if users session is authenticated
+ * @route GET /api/v1/auth/auth-check
+ * @access Private
+ */
+export const checkSession = asyncHandler(async (req, res, next) => {
+    res.status(200).json(new ResponseModel(200, 'User is authenticated', { authenticated: true }));
 });
