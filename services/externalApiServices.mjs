@@ -8,8 +8,8 @@ function generateNonce() {
     return crypto.randomBytes(32).toString('base64');
 }
 
-async function sign(secret, data) {
-    const hmac = crypto.createHmac('sha256', secret);
+async function sign(key, data) {
+    const hmac = crypto.createHmac('sha256', key);
     hmac.update(data);
     return hmac.digest('base64');
 }
@@ -118,3 +118,166 @@ export async function verifyEmailService(email, code, jwt) {
         throw error;
     }
 }
+
+export const loginService = async (userData) => {
+    const { host } = config.externalApi;
+    const { username, password } = userData;
+    const url = `https://${host}/Agent/Account/Login`;
+    const nonce = generateNonce();
+    const s = `${username}:${host}:${nonce}`;
+    const key = Buffer.from(password, 'utf-8');
+    const data = Buffer.from(s, 'utf-8');
+    const h = await sign(key, data);
+
+    const payload = {
+        userName: username,
+        nonce,
+        signature: h,
+        seconds: '3600'
+    };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+            throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
+        }
+
+        const responseData = await response.json();
+        return responseData;
+
+    } catch (error) {
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+        throw error;
+    }
+};
+
+
+export const authenticateJwt = async (jwt) => {
+    const { host } = config.externalApi;
+    const url = `https://${host}/Agent/Account/AuthenticateJwt`;
+    const payload = { token: jwt };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+            throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
+        }
+
+        const responseData = await response.json();
+        return responseData;
+    } catch (error) {
+
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+        throw error;
+
+    }
+}
+
+export const userInfo = async (jwt) => {
+    const { host } = config.externalApi;
+    const url = `https://${host}/Agent/Account/Info`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwt}`
+            },
+            body: JSON.stringify({})
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+            throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
+        }
+
+        const responseData = await response.json();
+        return responseData;
+
+    } catch (error) {
+
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+        throw error;
+
+    }
+
+};
+
+export const refresh = async (jwt, seconds) => {
+    const { host } = config.externalApi;
+    const url = `https://${host}/Agent/Account/Refresh`;
+    const payload = { seconds };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwt}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+            throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
+        }
+
+        return await response.json();
+
+    } catch (error) {
+
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+        throw error;
+
+    }
+};

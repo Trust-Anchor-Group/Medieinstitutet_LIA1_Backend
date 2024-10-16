@@ -1,7 +1,8 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-import { createAccount, verifyEmailService } from "../services/externalApiServices.mjs";
+import { createAccount, verifyEmailService, loginService, userInfo, refresh } from "../services/externalApiServices.mjs";
+import CookieHandler from "../utilities/CookieHandler.mjs";
 
 /**
  * @desc Register user
@@ -10,8 +11,13 @@ import { createAccount, verifyEmailService } from "../services/externalApiServic
  */
 export const register = asyncHandler(async (req, res, next) => {
     try {
-        const accountData = await createAccount(req.body);
-        res.status(201).json(new ResponseModel(201, 'Account registred', accountData));
+        const response = await createAccount(req.body);
+
+        const cookie = new CookieHandler(res);
+        const { jwt } = response;
+        cookie.setCookie('registration', { jwt });
+
+        res.status(201).json(new ResponseModel(201, 'Account registred', response));
     } catch (error) {
         next(error);
     }
@@ -24,27 +30,26 @@ export const register = asyncHandler(async (req, res, next) => {
  */
 export const verifyEmail = asyncHandler(async (req, res, next) => {
     const { email, code } = req.body;
-    // console.log('Header', req.headers);
-    const authHeader = req.headers['authorization'];
 
-    if (!authHeader) {
-        throw new ErrorResponse(401, 'Authorization header is missing');
-    }
+    let cookie = req.cookies.registration;
+    let cookieData;
 
-    const [bearer, jwt] = authHeader.split(' ');
-    //console.log('token:', bearer, jwt);
-
-    if (bearer !== 'Bearer' || !jwt) {
-        throw new ErrorResponse(401, 'Invalid authorization header format', 'internal');
+    if (cookie) {
+        try {
+            cookieData = JSON.parse(cookie);
+        } catch (error) {
+            throw new ErrorResponse(401, 'Invalid cookie data', 'internal');
+        }
     }
 
     try {
-        const verificationData = await verifyEmailService(email, code, jwt);
+        const verificationData = await verifyEmailService(email, code, cookieData.jwt);
+        cookie = new CookieHandler(res);
+        cookie.deleteCookie('registration');
         res.status(200).json(new ResponseModel(200, 'Email verified successfully', verificationData));
     } catch (error) {
         next(error);
     }
-
 
 });
 
@@ -54,8 +59,71 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
  * @access Public
  */
 export const login = asyncHandler(async (req, res, next) => {
-    res.status(200).json({
-        success: true,
-        message: 'Login Successful'
-    });
+    try {
+        const data = await loginService(req.body);
+        const cookie = new CookieHandler(res);
+        cookie.setCookie('auth', { jwt: data.jwt });
+        res.status(200).json(new ResponseModel(200, 'Login successful', data));
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * @desc Logout user
+ * @route GET /api/v1/auth/logout
+ * @access Public
+ */
+export const logout = asyncHandler(async (req, res, next) => {
+    const cookie = new CookieHandler(res);
+    cookie.deleteCookie('auth');
+    res.status(200).json(new ResponseModel(200, 'Logout successful', {}));
+});
+
+/**
+ * @desc Get user info
+ * @route GET /api/v1/auth/account-info
+ * @access Private
+ */
+export const accountInfo = asyncHandler(async (req, res, next) => {
+
+    const cookie = req.cookies.auth;
+    let cookieData = JSON.parse(cookie);
+
+    try {
+        const data = await userInfo(cookieData.jwt);
+        res.status(200).json(new ResponseModel(200, 'User info', data));
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * @desc Check if users session is authenticated
+ * @route GET /api/v1/auth/auth-check
+ * @access Private
+ */
+export const checkSession = asyncHandler(async (req, res, next) => {
+    res.status(200).json(new ResponseModel(200, 'User is authenticated', { authenticated: true }));
+});
+
+/**
+ * @desc Refresh the access token
+ * @route GET /api/v1/auth/refresh
+ * @access Private
+ */
+export const refreshToken = asyncHandler(async (req, res, next) => {
+
+    const seconds = 3600;
+    const cookieAuth = req.cookies.auth;
+    const cookieData = JSON.parse(cookieAuth);
+
+    try {
+        const response = await refresh(cookieData.jwt, seconds);
+        const cookie = new CookieHandler(res);
+        cookie.setCookie('auth', { jwt: response.jwt });
+        res.status(200).json(new ResponseModel(200, 'Access token refreshed', response));
+    } catch (error) {
+        next(error);
+    }
 });

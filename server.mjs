@@ -12,6 +12,7 @@ import { generalLimiter } from './middleware/limitHandler.mjs';
 import authRouter from './routes/auth-routes.mjs';
 import config from './config/config.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
@@ -21,10 +22,13 @@ const app = express();
 // Body parser
 app.use(express.json());
 
+app.use(cookieParser());
+
 // Enable CORS for specified origin
 const corsOptions = {
     origin: config.clientUrl,
     optionsSuccessStatus: 200,
+    credentials: true, // Allow credentials (cookies) to be sent
 };
 app.use(cors(corsOptions));
 
