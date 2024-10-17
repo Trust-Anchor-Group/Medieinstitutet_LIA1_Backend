@@ -62,7 +62,10 @@ export const login = asyncHandler(async (req, res, next) => {
     try {
         const data = await loginService(req.body);
         const cookie = new CookieHandler(res);
-        cookie.setCookie('auth', { jwt: data.jwt });
+        cookie.setCookie('auth', {
+            jwt: data.jwt,
+            expires: data.expires
+        });
         res.status(200).json(new ResponseModel(200, 'Login successful', data));
     } catch (error) {
         next(error);
@@ -104,7 +107,12 @@ export const accountInfo = asyncHandler(async (req, res, next) => {
  * @access Private
  */
 export const checkSession = asyncHandler(async (req, res, next) => {
-    res.status(200).json(new ResponseModel(200, 'User is authenticated', { authenticated: true }));
+    const cookie = req.cookies.auth;
+    let cookieData = JSON.parse(cookie);
+    res.status(200).json(new ResponseModel(200, 'User is authenticated', {
+        authenticated: true,
+        expires: cookieData.expires
+    }));
 });
 
 /**
@@ -121,7 +129,10 @@ export const refreshToken = asyncHandler(async (req, res, next) => {
     try {
         const response = await refresh(cookieData.jwt, seconds);
         const cookie = new CookieHandler(res);
-        cookie.setCookie('auth', { jwt: response.jwt });
+        cookie.setCookie('auth', {
+            jwt: response.jwt,
+            expires: response.expires
+        });
         res.status(200).json(new ResponseModel(200, 'Access token refreshed', response));
     } catch (error) {
         next(error);
