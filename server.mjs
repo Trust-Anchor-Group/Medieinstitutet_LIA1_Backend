@@ -92,7 +92,7 @@ const SERVER = app.listen(PORT, () => {
 // Periodic server status logging
 setInterval(() => {
   logger.info('Server is still running');
-}, 60000); // Log every minute
+}, 300000); // Log every 5 minutes
 
 // ============================================================
 // = UNHANDLED REJECTION HANDLER

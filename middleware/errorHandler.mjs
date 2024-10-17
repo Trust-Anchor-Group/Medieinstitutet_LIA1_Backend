@@ -11,33 +11,33 @@ export const errorHandler = (err, req, res, next, logger) => {
 
   // ErrorResponse instances
   if (err instanceof ErrorResponse) {
-    return res.status(err.statusCode).json({
+    res.status(err.statusCode).json({
       source: err.source,
       success: false,
       statusCode: err.statusCode,
       error: err.message
     });
-  }
-
+  } 
   // Axios errors
-  if (err.isAxiosError) {
+  else if (err.isAxiosError) {
     const statusCode = err.response?.status || 500;
     const message = err.response?.data?.error || err.message || 'External API error';
-    return res.status(statusCode).json({
+    res.status(statusCode).json({
       source: err.source,
       success: false,
       statusCode: statusCode,
       error: message
     });
   }
-
   // Default to 500 server error
-  res.status(500).json({
-    success: false,
-    statusCode: 500,
-    error: 'Server Error'
-  });
+  else {
+    res.status(500).json({
+      success: false,
+      statusCode: 500,
+      error: 'Server Error'
+    });
+  }
 
-  // Log that the server is still running after handling the error
-  logger.info('Server recovered from an error and is still running');
+  // Log that the server is still running immediately after handling the error
+  logger.info(chalk.green.bold('Server encountered an error but is still running'));
 };
