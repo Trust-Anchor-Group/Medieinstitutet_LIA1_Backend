@@ -3,7 +3,6 @@
 // ============================================================
 import chalk from 'chalk';
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 import xss from 'xss-clean';
@@ -13,6 +12,25 @@ import authRouter from './routes/auth-routes.mjs';
 import config from './config/config.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
 import cookieParser from 'cookie-parser';
+import winston from 'winston';
+
+// ============================================================
+// = LOGGER CONFIGURATION
+// ============================================================
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(({ timestamp, level, message }) => {
+      return `${timestamp} ${level}: ${message}`;
+    })
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+});
 
 const app = express();
 
@@ -50,7 +68,7 @@ app.use(hpp());
 // Define root route
 app.get('/', (req, res) => {
     res.send('Server is up and running - CALL WORKS!');
-    console.log(chalk.magenta.bold('Server is up and running - CALL WORKS!'));
+    logger.info('Root route accessed');
 });
 
 // Endpoints
@@ -59,20 +77,35 @@ app.use('/api/v1/auth', authRouter)
 // ============================================================
 // = ERROR HANDLING
 // ============================================================
-app.use(errorHandler);
+app.use((err, req, res, next) => {
+  errorHandler(err, req, res, next, logger);
+});
 
 // ============================================================
 // = SERVER INITIALIZATION
 // ============================================================
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5001;
 const SERVER = app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    logger.info(`Server running on port ${PORT}`);
 });
+
+// Periodic server status logging
+setInterval(() => {
+  logger.info('Server is still running');
+}, 60000); // Log every minute
 
 // ============================================================
 // = UNHANDLED REJECTION HANDLER
 // ============================================================
-process.on('unhandledRejection', (err, promise) => {
-    console.log(`Unhandled error: ${err.message}`);
-    //SERVER.close(() => process.exit(1));
+process.on('unhandledRejection', (err) => {
+    logger.error(`Unhandled Rejection: ${err.message}`);
+    // Keep the server running, don't exit
+});
+
+// ============================================================
+// = UNCAUGHT EXCEPTION HANDLER
+// ============================================================
+process.on('uncaughtException', (err) => {
+    logger.error(`Uncaught Exception: ${err.message}`);
+    // Keep the server running, don't exit
 });

@@ -3,3 +3,7 @@ node_modules
 .DS_Store
 logs/
 .vscode
+
+
+combined.log
+error.log
