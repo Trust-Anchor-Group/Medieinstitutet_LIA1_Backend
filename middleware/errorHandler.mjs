@@ -4,7 +4,6 @@ import ErrorResponse from '../models/ErrorResponseModel.mjs';
 import chalk from 'chalk';
 
 export const errorHandler = (err, req, res, next, logger) => {
-  let error = { ...err };
 
   // Log to console and file for dev
   logger.error(chalk.red(err.stack));
@@ -15,9 +14,9 @@ export const errorHandler = (err, req, res, next, logger) => {
       source: err.source,
       success: false,
       statusCode: err.statusCode,
-      error: err.message
+      message: err.message
     });
-  } 
+  }
   // Axios errors
   else if (err.isAxiosError) {
     const statusCode = err.response?.status || 500;
@@ -26,7 +25,7 @@ export const errorHandler = (err, req, res, next, logger) => {
       source: err.source,
       success: false,
       statusCode: statusCode,
-      error: message
+      message: message
     });
   }
   // Default to 500 server error
@@ -34,7 +33,7 @@ export const errorHandler = (err, req, res, next, logger) => {
     res.status(500).json({
       success: false,
       statusCode: 500,
-      error: 'Server Error'
+      message: 'Server Error'
     });
   }
 
