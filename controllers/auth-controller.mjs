@@ -40,6 +40,8 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
         } catch (error) {
             throw new ErrorResponse(401, 'Invalid cookie data', 'internal');
         }
+    } else {
+        throw new ErrorResponse(401, 'Activation period has expired. Please request a new activation code.');
     }
 
     try {
