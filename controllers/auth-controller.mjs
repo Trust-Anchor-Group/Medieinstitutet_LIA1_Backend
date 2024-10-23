@@ -1,7 +1,7 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-import { createAccount, verifyEmailService, loginService, userInfo, refresh } from "../services/externalApiServices.mjs";
+import { createAccount, verifyEmailService, loginService, userInfo, refresh, getIds } from "../services/externalApiServices.mjs";
 import CookieHandler from "../utilities/CookieHandler.mjs";
 
 /**
@@ -139,4 +139,18 @@ export const refreshToken = asyncHandler(async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+});
+
+export const ids = asyncHandler(async (req, res, next) => {
+
+    const cookieAuth = req.cookies.auth;
+    const cookieData = JSON.parse(cookieAuth);
+
+    try {
+        const response = await getIds(cookieData.jwt);
+        res.status(200).json(new ResponseModel(200, 'Ids fetched', response));
+    } catch (error) {
+        next(error);
+    }
+
 });
