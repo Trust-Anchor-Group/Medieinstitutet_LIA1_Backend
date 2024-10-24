@@ -1,7 +1,7 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-import { createAccount, verifyEmailService, loginService, userInfo, refresh } from "../services/externalApiServices.mjs";
+import { createAccount, verifyEmailService, loginService, userInfo, refresh, contractInfo } from "../services/externalApiServices.mjs";
 import CookieHandler from "../utilities/CookieHandler.mjs";
 
 /**
@@ -140,3 +140,24 @@ export const refreshToken = asyncHandler(async (req, res, next) => {
         next(error);
     }
 });
+
+export const getContract = asyncHandler(async (req, res, next) => {
+    
+    const cookieAuth = req.cookies.auth;
+    const cookieData = JSON.parse(cookieAuth);
+    const {contractId} = req.body;
+
+try {
+        const data = await contractInfo(
+            contractId,
+          cookieData.jwt
+        );
+        res
+          .status(200)
+          .json(new ResponseModel(200, "successfully fetched contract data", data));
+} catch (error) {
+    next(error);
+}
+
+
+})

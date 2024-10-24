@@ -281,3 +281,48 @@ export const refresh = async (jwt, seconds) => {
 
     }
 };
+
+export const contractInfo = async (contractId, jwt) => {
+    const {host} = config.externalApi;
+    const url = `https://${host}/Agent/Legal/GetContract`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                "Authorization": `Bearer ${jwt}`    
+            },
+            body: JSON.stringify({contractId})
+        })
+
+        if (!response.ok) {
+          const contentType = response.headers.get('Content-Type');
+
+          let errorBody;
+
+          if (contentType && contentType.includes('application/json')) {
+            errorBody = await response.json();
+          } else {
+            errorBody = await response.text();
+          }
+          throw new ErrorResponse(
+            response.status,
+            errorBody.message || errorBody,
+            'external'
+          );
+        }
+        
+        
+        return  await response.json();
+
+        
+    } catch (error) {
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+        throw error;
+    }
+
+
+}
