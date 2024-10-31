@@ -1,3 +1,4 @@
+// models/ErrorResponseModel.mjs
 /**
  * @desc This class is used to create an error response object
  * @param {string} statusCode - The status code of the error

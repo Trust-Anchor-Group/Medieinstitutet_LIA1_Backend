@@ -1,3 +1,4 @@
+// utilities/CookieHandler.mjs
 import { jwtDecode } from "jwt-decode";
 
 export default class CookieHandler {
