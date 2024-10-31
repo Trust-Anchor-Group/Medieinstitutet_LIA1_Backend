@@ -12,4 +12,5 @@ export default {
     key: process.env.EXTERNAL_API_KEY,
     secret: process.env.EXTERNAL_API_SECRET,
   },
+  jwtSeconds: "100", // seconds
 };

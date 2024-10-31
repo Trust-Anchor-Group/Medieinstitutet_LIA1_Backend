@@ -3,6 +3,7 @@ import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
 import { createAccount, verifyEmailService, loginService, userInfo, refresh, contractInfo } from "../services/externalApiServices.mjs";
 import CookieHandler from "../utilities/CookieHandler.mjs";
+import  config  from '../config/config.mjs';
 
 /**
  * @desc Register user
@@ -62,12 +63,14 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
  */
 export const login = asyncHandler(async (req, res, next) => {
     try {
-        const data = await loginService(req.body);
+        const data = await loginService({...req.body, jwtSeconds: config.jwtSeconds});
         const cookie = new CookieHandler(res);
         cookie.setCookie('auth', {
             jwt: data.jwt,
             expires: data.expires
         });
+
+        console.log("login data", data)
         res.status(200).json(new ResponseModel(200, 'Login successful', data));
     } catch (error) {
         next(error);
@@ -124,12 +127,12 @@ export const checkSession = asyncHandler(async (req, res, next) => {
  */
 export const refreshToken = asyncHandler(async (req, res, next) => {
 
-    const seconds = 3600;
+  
     const cookieAuth = req.cookies.auth;
     const cookieData = JSON.parse(cookieAuth);
 
     try {
-        const response = await refresh(cookieData.jwt, seconds);
+        const response = await refresh(cookieData.jwt, config.jwtSeconds);
         const cookie = new CookieHandler(res);
         cookie.setCookie('auth', {
             jwt: response.jwt,

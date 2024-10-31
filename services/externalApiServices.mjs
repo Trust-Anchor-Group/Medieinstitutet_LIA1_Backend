@@ -121,19 +121,20 @@ export async function verifyEmailService(email, code, jwt) {
 
 export const loginService = async (userData) => {
     const { host } = config.externalApi;
-    const { username, password } = userData;
+    const { username, password, jwtSeconds } = userData;
+    
     const url = `https://${host}/Agent/Account/Login`;
     const nonce = generateNonce();
     const s = `${username}:${host}:${nonce}`;
     const key = Buffer.from(password, 'utf-8');
     const data = Buffer.from(s, 'utf-8');
     const h = await sign(key, data);
-
+    
     const payload = {
         userName: username,
         nonce,
         signature: h,
-        seconds: '3600'
+        seconds: jwtSeconds
     };
 
     try {
