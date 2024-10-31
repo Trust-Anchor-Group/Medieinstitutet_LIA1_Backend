@@ -10,6 +10,7 @@ import xss from 'xss-clean';
 import hpp from 'hpp';
 import { generalLimiter } from './middleware/limitHandler.mjs';
 import authRouter from './routes/auth-routes.mjs';
+import contractRouter from './routes/contract-routes.mjs';
 import config from './config/config.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
 import cookieParser from 'cookie-parser';
@@ -75,6 +76,7 @@ app.get('/', (req, res) => {
 
 // Endpoints
 app.use('/api/v1/auth', authRouter)
+app.use('/api/v1/contracts', contractRouter)
 
 // ============================================================
 // = ERROR HANDLING
