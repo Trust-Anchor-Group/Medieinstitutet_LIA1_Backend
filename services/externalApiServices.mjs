@@ -561,3 +561,44 @@ export const createKey = async (data) => {
         throw error;
     }
 }
+
+export const getIdentity = async (id, jwt) => {
+    const { host } = config.externalApi;
+    const url = `https://${host}/Agent/Legal/GetIdentity`;
+    const payload = {
+        legalId: id
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${jwt}`,
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const contentType = response.headers.get('Content-Type');
+            let errorBody;
+            if (contentType && contentType.includes('application/json')) {
+                errorBody = await response.json();
+            } else {
+                errorBody = await response.text();
+            }
+
+            console.log('errorbody', errorBody);
+            throw new ErrorResponse(response.status, errorBody.message || 'An unexpected error occurred', 'external')
+        }
+
+        return await response.json();
+    } catch (error) {
+        if (!(error instanceof ErrorResponse)) {
+            throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
+        }
+
+        throw error;
+    }
+
+}

@@ -1,7 +1,7 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-import { createAccount, verifyEmailService, loginService, userInfo, refresh, getIds, getIdReqAttributes, fetchAlgorithms, createId, getKeyData, createKey } from "../services/externalApiServices.mjs";
+import { createAccount, verifyEmailService, loginService, userInfo, refresh, getIds, getIdReqAttributes, fetchAlgorithms, createId, getKeyData, createKey, getIdentity } from "../services/externalApiServices.mjs";
 import CookieHandler from "../utilities/CookieHandler.mjs";
 import generateHash from "../utilities/hashUtils.mjs";
 import config from "../config/config.mjs";
@@ -77,6 +77,7 @@ export const login = asyncHandler(async (req, res, next) => {
             expires: response.expires
         });
 
+        // Emit login success
         userEvents.loginUser({
             request: req.body,
             response
@@ -316,4 +317,17 @@ const generateKey = asyncHandler(async (req, res, next) => {
         next(error);
     }
 
+});
+
+export const getId = asyncHandler(async (req, res, next) => {
+    const { legalId } = req.body;
+    const cookieAuth = req.cookies.auth;
+    const cookieData = JSON.parse(cookieAuth);
+
+    try {
+        const response = await getIdentity(legalId, cookieData.jwt);
+        res.status(200).json(new ResponseModel(200, 'Fetched user identity', response))
+    } catch (error) {
+        next(error);
+    }
 });
