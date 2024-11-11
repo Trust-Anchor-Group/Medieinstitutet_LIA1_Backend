@@ -148,24 +148,42 @@ export const getContractDetails = asyncHandler(async (req, res, next) => {
  * @access Private
  */
 export const getAvailableContracts = asyncHandler(async (req, res, next) => {
+    console.log('=== Starting getAvailableContracts ===');
+    
     const cookie = req.cookies.auth;
     if (!cookie) {
+        console.log('No auth cookie found');
         return next(new ErrorResponse(401, 'Authentication required', 'internal'));
     }
 
     try {
         const cookieData = JSON.parse(cookie);
+        console.log('Successfully parsed auth cookie');
+
+        // First get contract IDs
+        console.log('Fetching contract IDs');
         const contractIds = await getContractIds();
-        
+        console.log('Retrieved contract IDs:', contractIds);
+
         // Fetch contract details for each ID
-        const contractPromises = contractIds.map(contract => 
-            getContract(contract.id, 'text', cookieData.jwt)
-        );
+        console.log('Starting to fetch individual contract details');
+        const contractPromises = contractIds.map(async contract => {
+            try {
+                return await getContract(contract.id, null, cookieData.jwt);
+            } catch (error) {
+                console.error(`Error fetching contract ${contract.id}:`, error);
+                return null;
+            }
+        });
         
         const contracts = await Promise.all(contractPromises);
+        const validContracts = contracts.filter(contract => contract !== null);
         
-        res.status(200).json(new ResponseModel(200, 'Contracts retrieved successfully', contracts));
+        console.log(`Successfully retrieved ${validContracts.length} contracts`);
+        
+        res.status(200).json(new ResponseModel(200, 'Contracts retrieved successfully', validContracts));
     } catch (error) {
+        console.error('Error in getAvailableContracts:', error);
         next(error);
     }
 });

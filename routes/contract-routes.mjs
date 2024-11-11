@@ -5,8 +5,8 @@ import { createMicroLoanContract, getContractDetails, getAvailableContracts } fr
 
 const router = express.Router();
 
-router.post('/microloan', protect, createMicroLoanContract);
-router.get('/:contractId', protect, getContractDetails);
 router.get('/available', protect, getAvailableContracts);
+router.get('/:contractId', protect, getContractDetails);
+router.post('/microloan', protect, createMicroLoanContract);
 
 export default router;
