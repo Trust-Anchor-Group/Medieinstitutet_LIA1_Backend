@@ -332,7 +332,7 @@ export const getIdReqAttributes = async (jwt) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${jwt}`
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(contractData)
         });
 
         if (!response.ok) {
@@ -343,11 +343,17 @@ export const getIdReqAttributes = async (jwt) => {
             } else {
                 errorBody = await response.text();
             }
+            
             throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
         }
 
-        return await response.json();
+        const responseData = await response.json();
+        return responseData;
+
     } catch (error) {
+        console.log("External API Service: Caught error:", error);
+        console.error('Contract creation error:', error);
+        
         if (!(error instanceof ErrorResponse)) {
             throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
         }
