@@ -11,8 +11,8 @@ import { v4 as uuidv4 } from 'uuid';
      const sessionId = uuidv4().replaceAll('-', '');
      const session = {
        jwt,
-       expiresAt: Date.now() + expiresAt,
-       createdAt: new Date(),
+       expiresAt: new Date(expiresAt).getTime(),
+       createdAt: Date.now(),
        refreshTimer: null,
      };
      console.log('Session created: ', session);
