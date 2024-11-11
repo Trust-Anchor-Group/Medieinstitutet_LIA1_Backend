@@ -7,21 +7,56 @@ import { v4 as uuidv4 } from 'uuid';
 
    //Create a new session
    createSession(jwt, expiresAt) {
-    console.log('....Creating session.....');
-     const sessionId = uuidv4()/* .replaceAll('-', ''); */
+     console.log('....Creating session.....');
+     const sessionId = uuidv4().replaceAll('-', '');
      const session = {
        jwt,
-       expiresAt,
+       expiresAt: Date.now() + expiresAt,
        createdAt: new Date(),
        refreshTimer: null,
      };
-    console.log('Session created: ', session);
+     console.log('Session created: ', session);
      this.sessions.set(sessionId, session);
      return sessionId;
    }
 
+   //Delete a session
+   deleteSession(sessionId) {
+     const session = this.sessions.get(sessionId);
+     if (session && session.refreshTimer) {
+       clearTimeout(session.refreshTimer);
+     }
+
+     return this.sessions.delete(sessionId);
+   }
+
    getSession(sessionId) {
      return this.sessions.get(sessionId);
+   }
+
+   //Refresh session
+   refreshSessionTimer(sessionId, callback, timeBeforeExpiry = 30000) {
+     const session = this.sessions.get(sessionId);
+     if (session) {
+       if (session.refreshTimer) {
+         clearTimeout(session.refreshTimer);
+       }
+
+       const timeNow = Date.now();
+       const expiresAt = new Date(session.expiresAt).getTime();
+       const timeUntilRefresh = Math.max(
+         0,
+         expiresAt - timeNow - timeBeforeExpiry
+       );
+
+       session.refreshTimer = setTimeout(() => {
+         callback(sessionId);
+       }, timeUntilRefresh);
+
+       this.sessions.set(sessionId, session);
+
+       return session;
+     }
    }
 
    //Update a session
@@ -39,46 +74,20 @@ import { v4 as uuidv4 } from 'uuid';
      return null;
    }
 
-   //Delete a session
-   deleteSession(sessionId) {
-     const session = this.sessions.get(sessionId);
-     if (session && session.refreshTimer) {
-       clearTimeout(session.refreshTimer);
+   //Validate session
+   validateSession(sessionId) {
+     if (!this.sessions.has(sessionId)) return false;
+     const sessionData = this.sessions.get(sessionId);
+     const timeNow = Date.now();
+     console.log('Time now: ', timeNow);
+     const expiresAt = sessionData.expiresAt;
+     console.log('expiresat:', expiresAt); // Assuming sessionData.expiresAt is a Unix timestamp
+     if (timeNow >= expiresAt) {
+       this.deleteSession(sessionId);
+       return false;
      }
-
-     return this.sessions.delete(sessionId);
+     return true;
    }
-
-   //Refresh session
-   refreshSessionTimer(sessionId, callback, timeBeforeExpiry = 30000) {
-     const session = this.sessions.get(sessionId);
-     if (session) {
-       if (session.refreshTimer) {
-         clearTimeout(session.refreshTimer);
-       }
-
-       const timeNow = Date.now();
-       const expiresAt = new Date(session.expiresAt).getTime();
-       const timeUntilRefresh = Math.max(0,expiresAt - timeNow - timeBeforeExpiry);
-
-       session.refreshTimer = setTimeout(() => {
-         callback(sessionId);
-       }, timeUntilRefresh);
-
-       this.sessions.set(sessionId, session);
-
-       return session;
-     }
-   }
-
-   /* getAllSessions() {
-     return Array.from(this.sessions.entries()).map(([id, session]) => ({
-       id,
-       expiresAt: session.expiresAt,
-       createdAt: session.createdAt,
-       updatedAt: session.updatedAt,
-     }));
-   } */
  }
 
 export const sessionStore = new SessionStore();
