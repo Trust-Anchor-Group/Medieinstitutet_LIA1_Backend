@@ -2,7 +2,8 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-import { createContract } from "../services/externalApiServices.mjs";
+import { createContract, getContract } from "../services/externalApiServices.mjs";
+import { getContractIds } from "../services/contractServices.mjs";
 
 /**
  * @desc Create a new micro loan contract
@@ -104,6 +105,67 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
         res.status(201).json(new ResponseModel(201, 'Micro loan contract created successfully', contractResponse));
     } catch (error) {
         console.log("Backend: Error creating contract", error);
+        next(error);
+    }
+});
+
+/**
+ * @desc Get contract details
+ * @route GET /api/v1/contracts/:contractId
+ * @access Private
+ */
+export const getContractDetails = asyncHandler(async (req, res, next) => {
+    const cookie = req.cookies.auth;
+    if (!cookie) {
+        return next(new ErrorResponse(401, 'Authentication required', 'internal'));
+    }
+
+    let cookieData;
+    try {
+        cookieData = JSON.parse(cookie);
+    } catch (error) {
+        return next(new ErrorResponse(401, 'Invalid authentication data', 'internal'));
+    }
+
+    try {
+        const { contractId } = req.params;
+        const { format } = req.query;
+
+        if (!contractId) {
+            throw new ErrorResponse(400, 'Contract ID is required', 'internal');
+        }
+
+        const contractResponse = await getContract(contractId, format, cookieData.jwt);
+        res.status(200).json(new ResponseModel(200, 'Contract details retrieved successfully', contractResponse));
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * @desc Get contract IDs
+ * @route GET /api/v1/contracts
+ * @access Private
+ */
+export const getAvailableContracts = asyncHandler(async (req, res, next) => {
+    const cookie = req.cookies.auth;
+    if (!cookie) {
+        return next(new ErrorResponse(401, 'Authentication required', 'internal'));
+    }
+
+    try {
+        const cookieData = JSON.parse(cookie);
+        const contractIds = await getContractIds();
+        
+        // Fetch contract details for each ID
+        const contractPromises = contractIds.map(contract => 
+            getContract(contract.id, 'text', cookieData.jwt)
+        );
+        
+        const contracts = await Promise.all(contractPromises);
+        
+        res.status(200).json(new ResponseModel(200, 'Contracts retrieved successfully', contracts));
+    } catch (error) {
         next(error);
     }
 });
