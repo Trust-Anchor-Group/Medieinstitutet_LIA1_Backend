@@ -13,6 +13,7 @@ import config from './config/config.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
 import cookieParser from 'cookie-parser';
 import winston from 'winston';
+import './listeners/index.mjs';
 
 // ============================================================
 // = LOGGER CONFIGURATION
@@ -44,9 +45,9 @@ app.use(cookieParser());
 
 // Enable CORS for specified origin
 const corsOptions = {
-    origin: config.clientUrl,
-    optionsSuccessStatus: 200,
-    credentials: true, // Allow credentials (cookies) to be sent
+  origin: config.clientUrl,
+  optionsSuccessStatus: 200,
+  credentials: true, // Allow credentials (cookies) to be sent
 };
 app.use(cors(corsOptions));
 
@@ -67,8 +68,8 @@ app.use(hpp());
 // ============================================================
 // Define root route
 app.get('/', (req, res) => {
-    res.send('Server is up and running - CALL WORKS!');
-    logger.info('Root route accessed');
+  res.send('Server is up and running - CALL WORKS!');
+  logger.info('Root route accessed');
 });
 
 // Endpoints
@@ -86,7 +87,7 @@ app.use((err, req, res, next) => {
 // ============================================================
 const PORT = process.env.PORT || 5001;
 const SERVER = app.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
 });
 
 // Periodic server status logging
@@ -98,14 +99,14 @@ setInterval(() => {
 // = UNHANDLED REJECTION HANDLER
 // ============================================================
 process.on('unhandledRejection', (err) => {
-    logger.error(`Unhandled Rejection: ${err.message}`);
-    // Keep the server running, don't exit
+  logger.error(`Unhandled Rejection: ${err.message}`);
+  // Keep the server running, don't exit
 });
 
 // ============================================================
 // = UNCAUGHT EXCEPTION HANDLER
 // ============================================================
 process.on('uncaughtException', (err) => {
-    logger.error(`Uncaught Exception: ${err.message}`);
-    // Keep the server running, don't exit
+  logger.error(`Uncaught Exception: ${err.message}`);
+  // Keep the server running, don't exit
 });
