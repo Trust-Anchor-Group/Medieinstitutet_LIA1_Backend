@@ -1,32 +1,62 @@
-// services/contractService.mjs
+// services/contractServices.mjs
 import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 import ErrorResponse from '../models/ErrorResponseModel.mjs';
+import DataInitializationService from './dataInitializationService.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-/**
- * @desc Reads contract IDs from JSON file
- * @returns {Promise<Array>} Array of contract IDs
- */
-export const getContractIds = async () => {
-    try {
-        const filePath = path.join(__dirname, '..', 'data', 'contractId.json'); 
-        console.log('Attempting to read file from:', filePath);
-        
-        const data = await fs.readFile(filePath, 'utf8');
-        console.log('Successfully read file, content:', data);
-        
-        const contractData = JSON.parse(data);
-        return contractData.contracts;
-    } catch (error) {
-        console.error('Error in getContractIds:', error);
-        throw new ErrorResponse(500, 
-            `Error reading contract IDs: ${error.message}`,
-            'internal'
-        );
+class ContractServices {
+    constructor(logger) {
+        this.logger = logger;
+        this.dataInit = new DataInitializationService(logger);
+        this.contractFilePath = this.dataInit.getContractFilePath();
     }
-};
+
+    async getContractIds() {
+        try {
+            this.logger.info('Attempting to read file from:', this.contractFilePath);
+            
+            const data = await fs.readFile(this.contractFilePath, 'utf8');
+            this.logger.info('Successfully read file, content:', data);
+            
+            const contractData = JSON.parse(data);
+            return contractData.contracts;
+        } catch (error) {
+            this.logger.error('Error in getContractIds:', error);
+            throw new ErrorResponse(500, 
+                `Error reading contract IDs: ${error.message}`,
+                'internal'
+            );
+        }
+    }
+
+    async addContractId(contractId) {
+        try {
+            this.logger.info('Adding new contract ID:', contractId);
+            
+            // Read existing data
+            const data = await fs.readFile(this.contractFilePath, 'utf8');
+            const contractData = JSON.parse(data);
+            
+            // Add new contract ID
+            contractData.contracts.push({
+                id: contractId
+            });
+            
+            // Write updated data back to file
+            await fs.writeFile(
+                this.contractFilePath, 
+                JSON.stringify(contractData, null, 2),
+                'utf8'
+            );
+            
+            this.logger.info('Successfully added new contract ID to file');
+        } catch (error) {
+            this.logger.error('Error in addContractId:', error);
+            throw new ErrorResponse(500, 
+                `Error adding contract ID: ${error.message}`,
+                'internal'
+            );
+        }
+    }
+}
+
+export default ContractServices;

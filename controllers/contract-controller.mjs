@@ -3,7 +3,25 @@ import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
 import { createContract, getContract } from "../services/externalApiServices.mjs";
-import { getContractIds } from "../services/contractServices.mjs";
+import ContractServices from '../services/contractServices.mjs';
+import winston from 'winston';
+
+// Initialize logger for contract controller
+const logger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf(({ timestamp, level, message }) => {
+            return `${timestamp} ${level}: ${message}`;
+        })
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'contract-controller.log' })
+    ]
+});
+
+const contractServices = new ContractServices(logger);
 
 /**
  * @desc Create a new micro loan contract
@@ -20,27 +38,26 @@ import { getContractIds } from "../services/contractServices.mjs";
  * @param {Object} req.body.roles - Contract role assignments
  * @returns {Promise<Object>} Response containing contract creation status and details
  */
-// controllers/contract-controller.mjs
-
 export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
-    console.log("Backend: Starting contract creation");
+    logger.info("Starting contract creation");
     const cookie = req.cookies.auth;
     if (!cookie) {
-        console.log("Backend: No auth cookie found");
+        logger.error("No auth cookie found");
         return next(new ErrorResponse(401, 'Authentication required', 'internal'));
     }
 
     let cookieData;
     try {
         cookieData = JSON.parse(cookie);
-        console.log("Backend: Cookie data parsed successfully", cookieData);
+        logger.info("Cookie data parsed successfully");
     } catch (error) {
-        console.log("Backend: Error parsing cookie data", error);
+        logger.error("Error parsing cookie data:", error);
         return next(new ErrorResponse(401, 'Invalid authentication data', 'internal'));
     }
 
     try {
-        console.log("Backend: Received request body:",JSON.stringify(req.body, null, 2));
+        logger.info("Received request body:", JSON.stringify(req.body, null, 2));
+        
         // Validate required fields
         const requiredFields = [
             'amount', 'currency', 'installmentInterval', 
@@ -54,12 +71,38 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
             }
         }
 
-        const parts = [
-        ];
+        // Initialize Parts array based on roles
+        const parts = [];
+        const { roles } = req.body;
 
-        // Format contract data according to the simplified API format
+        // Check if any role is provided
+        const hasAnyRole = Object.values(roles).some(role => role !== '');
+
+        // If any role is provided, all must be provided
+        if (hasAnyRole) {
+            const requiredRoles = ['creator', 'borrower', 'lender', 'trustProvider'];
+            const missingRoles = requiredRoles.filter(role => !roles[role]);
+
+            if (missingRoles.length > 0) {
+                throw new ErrorResponse(
+                    400, 
+                    `When providing roles, all roles are required. Missing: ${missingRoles.join(', ')}`,
+                    'internal'
+                );
+            }
+
+            // Add all roles to parts
+            parts.push(
+                { role: 'Creator', id: roles.creator },
+                { role: 'Borrower', id: roles.borrower },
+                { role: 'Lender', id: roles.lender },
+                { role: 'TrustProvider', id: roles.trustProvider }
+            );
+        }
+
+        // Format contract data according to the external API format
         const contractData = {
-            templateId: "2eb3a4a6-2fd2-6080-dc11-7cf88434c612@legal.mateo.lab.tagroot.io",  // TemplateId CreateStateMachineMicroloan contract
+            templateId: "2eb3a4a6-2fd2-6080-dc11-7cf88434c612@legal.mateo.lab.tagroot.io",
             visibility: "Public",
             Parts: parts,
             Parameters: [
@@ -94,17 +137,37 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
             ]
         };
 
-        console.log("Backend: Calling external API with data:", JSON.stringify(contractData, null, 2));
+        logger.info("Calling external API with data:", JSON.stringify(contractData, null, 2));
         const contractResponse = await createContract(contractData, cookieData.jwt);
-        console.log("Backend: Contract created successfully", contractResponse);
-        console.log('Complete Contract Response from External API:', {
-            fullResponse: contractResponse,
-            stringify: JSON.stringify(contractResponse, null, 2)
+        logger.info("Contract created successfully", contractResponse);
+
+        // ! Debugger save to json
+        logger.info("Contract response structure:", {
+            hasData: !!contractResponse.data,
+            hasDirectContract: !!contractResponse.Contract,
+            contractId: contractResponse.Contract?.id,
+            fullResponse: JSON.stringify(contractResponse, null, 2)
         });
+
+        // Save the contract ID
+        if (contractResponse.Contract?.id) { 
+            try {
+                await contractServices.addContractId(contractResponse.Contract.id);
+                logger.info("Contract ID saved to local storage");
+            } catch (error) {
+                logger.error("Error saving contract ID:", error);
+                // Error logging detail
+                logger.error("Error details:", {
+                    error: error.message,
+                    contractId: contractResponse.Contract.id,
+                    stack: error.stack
+                });
+            }
+        }
 
         res.status(201).json(new ResponseModel(201, 'Micro loan contract created successfully', contractResponse));
     } catch (error) {
-        console.log("Backend: Error creating contract", error);
+        logger.error("Error creating contract:", error);
         next(error);
     }
 });
@@ -148,30 +211,30 @@ export const getContractDetails = asyncHandler(async (req, res, next) => {
  * @access Private
  */
 export const getAvailableContracts = asyncHandler(async (req, res, next) => {
-    console.log('=== Starting getAvailableContracts ===');
+    logger.info('Starting getAvailableContracts');
     
     const cookie = req.cookies.auth;
     if (!cookie) {
-        console.log('No auth cookie found');
+        logger.error('No auth cookie found');
         return next(new ErrorResponse(401, 'Authentication required', 'internal'));
     }
 
     try {
         const cookieData = JSON.parse(cookie);
-        console.log('Successfully parsed auth cookie');
+        logger.info('Successfully parsed auth cookie');
 
-        // First get contract IDs
-        console.log('Fetching contract IDs');
-        const contractIds = await getContractIds();
-        console.log('Retrieved contract IDs:', contractIds);
+        // Get contract IDs using the service
+        logger.info('Fetching contract IDs');
+        const contractIds = await contractServices.getContractIds();
+        logger.info('Retrieved contract IDs:', contractIds);
 
         // Fetch contract details for each ID
-        console.log('Starting to fetch individual contract details');
+        logger.info('Starting to fetch individual contract details');
         const contractPromises = contractIds.map(async contract => {
             try {
                 return await getContract(contract.id, null, cookieData.jwt);
             } catch (error) {
-                console.error(`Error fetching contract ${contract.id}:`, error);
+                logger.error(`Error fetching contract ${contract.id}:`, error);
                 return null;
             }
         });
@@ -179,11 +242,11 @@ export const getAvailableContracts = asyncHandler(async (req, res, next) => {
         const contracts = await Promise.all(contractPromises);
         const validContracts = contracts.filter(contract => contract !== null);
         
-        console.log(`Successfully retrieved ${validContracts.length} contracts`);
+        logger.info(`Successfully retrieved ${validContracts.length} contracts`);
         
         res.status(200).json(new ResponseModel(200, 'Contracts retrieved successfully', validContracts));
     } catch (error) {
-        console.error('Error in getAvailableContracts:', error);
+        logger.error('Error in getAvailableContracts:', error);
         next(error);
     }
 });
