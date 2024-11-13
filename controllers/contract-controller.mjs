@@ -250,3 +250,39 @@ export const getAvailableContracts = asyncHandler(async (req, res, next) => {
         next(error);
     }
 });
+
+/**
+ * @desc Sign a contract with a legal identity
+ * @route POST /api/v1/contracts/sign
+ * @access Private
+ */
+export const signContract = asyncHandler(async (req, res, next) => {
+    const cookie = req.cookies.auth;
+    if (!cookie) {
+        return next(new ErrorResponse(401, 'Authentication required', 'internal'));
+    }
+
+    try {
+        const cookieData = JSON.parse(cookie);
+        const { contractId, legalId, role, keyId, keyPassword, accountPassword } = req.body;
+
+        // Generate nonce for request
+        const nonce = crypto.randomBytes(32).toString('base64');
+
+        // Create signing request
+        const response = await sign(
+            contractId,
+            legalId,
+            role,
+            keyId,
+            keyPassword,
+            accountPassword,
+            nonce,
+            cookieData.jwt
+        );
+
+        res.status(200).json(new ResponseModel(200, 'Contract signed successfully', response));
+    } catch (error) {
+        next(error);
+    }
+});
