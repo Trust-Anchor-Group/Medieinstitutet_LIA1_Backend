@@ -1,30 +1,33 @@
 import ErrorResponse from '../models/ErrorResponseModel.mjs';
-import { authenticateJwt } from '../services/externalApiServices.mjs';
+import { sessionStore } from '../utilities/SessionStore.mjs';
 import CookieHandler from '../utilities/CookieHandler.mjs';
 
+// Main protection middleware that chains session and JWT validation
 export const protect = async (req, res, next) => {
+  console.log("......Protecting route activated.....");
+  const cookie = req.cookies.session;
 
-    const cookie = req.cookies.auth;
+  if(!cookie) {
+    return next(new ErrorResponse(401, 'Not authorized', 'internal'));
+  }
 
-    if (!cookie) {
-        return next(new ErrorResponse(401, 'No authentication cookie found', 'internal'));
-    }
+  const cookieData = JSON.parse(cookie);
 
-    let cookieData;
+  if(!cookieData) {
+    return next(new ErrorResponse(401, 'Invalid cookie data session', 'internal'));
+  }
+  
+  console.log("Cookie data: ", cookieData);
 
-    try {
-        cookieData = JSON.parse(cookie);
-    } catch (error) {
-        return next(new ErrorResponse(401, 'Invalid cookie data', 'internal'));
-    }
+  if (!sessionStore.validateSession(cookieData.sessionId)) {
+    console.log("Session is invalid");
+    const newCookie = new CookieHandler(res);
 
-    try {
-        await authenticateJwt(cookieData.jwt);
-    } catch (error) {
-        const cookie = new CookieHandler(res);
-        cookie.deleteCookie('auth');
-        next(error);
-    }
-
-    next();
+    newCookie.deleteCookie('session');
+    
+  } 
+  next();
 };
+
+
+
