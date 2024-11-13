@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+import { authenticateJwt, refresh } from '../services/externalApiServices.mjs';
+import config from '../config/config.mjs';
 
  class SessionStore {
    constructor() {
@@ -7,15 +9,16 @@ import { v4 as uuidv4 } from 'uuid';
 
    //Create a new session
    createSession(jwt, expiresAt) {
-     console.log('....Creating session.....');
      const sessionId = uuidv4().replaceAll('-', '');
      const session = {
        jwt,
-       expiresAt: new Date(expiresAt).getTime(),
-       createdAt: Date.now(),
+       expiresAt,
+       createdAt: Math.floor(Date.now() / 1000),
        refreshTimer: null,
      };
-     console.log('Session created: ', session);
+
+     this.setupRefreshTimer(sessionId, session)  // Here we track the timer for session creation for later tracking time update
+  
      this.sessions.set(sessionId, session);
      return sessionId;
    }
@@ -23,8 +26,11 @@ import { v4 as uuidv4 } from 'uuid';
    //Delete a session
    deleteSession(sessionId) {
      const session = this.sessions.get(sessionId);
+     console.log("delete session fired", session);
+     
      if (session && session.refreshTimer) {
        clearTimeout(session.refreshTimer);
+  
      }
 
      return this.sessions.delete(sessionId);
@@ -34,59 +40,64 @@ import { v4 as uuidv4 } from 'uuid';
      return this.sessions.get(sessionId);
    }
 
-   //Refresh session
-   refreshSessionTimer(sessionId, callback, timeBeforeExpiry = 30000) {
-     const session = this.sessions.get(sessionId);
-     if (session) {
-       if (session.refreshTimer) {
-         clearTimeout(session.refreshTimer);
-       }
+   refreshSession(oldSessionId, newJwt, newExpireAt ) {
+      const newSessionId = uuidv4().replaceAll('-','');
 
-       const timeNow = Date.now();
-       const expiresAt = new Date(session.expiresAt).getTime();
-       const timeUntilRefresh = Math.max(
-         0,
-         expiresAt - timeNow - timeBeforeExpiry
-       );
+      const session = {
+        jwt: newJwt,
+        expiresAt: newExpireAt,
+        refreshTimer: null
+      };
 
-       session.refreshTimer = setTimeout(() => {
-         callback(sessionId);
-       }, timeUntilRefresh);
+      console.log("new session", session);
+      
 
-       this.sessions.set(sessionId, session);
-
-       return session;
-     }
+      this.setupRefreshTimer(newSessionId, session);
+      this.sessions.delete(oldSessionId);
+      this.sessions.set(newSessionId, session )
+   
+      return newSessionId;
    }
 
-   //Update a session
-   updateSession(sessionId, jwt, expiresAt) {
-     const session = this.sessions.get(sessionId);
-     if (session) {
-       if (session.refreshTimer) {
-         clearTimeout(session.refreshTimer);
-       }
-       session.jwt = jwt;
-       session.expiresAt = expiresAt;
-       this.sessions.set(sessionId, session);
-       return session;
-     }
-     return null;
+   async setupRefreshTimer(sessionId, session) {
+      const timeRefreshSpan = 20;
+      const timeUntilRefresh = (session.expiresAt - Math.floor(Date.now() / 1000) - timeRefreshSpan) * 1000; 
+
+      if(timeUntilRefresh <= 0) return;
+
+      session.refreshTimer = setTimeout(async () => {
+        try {
+          const response = await refresh(session.jwt, config.jwtSeconds); 
+          const newSession = this.refreshSession(sessionId, response.jwt, response.expires);
+          console.log("Session refreshed", newSession);
+          
+        } catch (error) {
+          console.error('Failed to refresh session:', error);
+          this.deleteSession(sessionId);
+        }
+      }, timeUntilRefresh);
    }
 
    //Validate session
-   validateSession(sessionId) {
+   async validateSession(sessionId) {
      if (!this.sessions.has(sessionId)) return false;
+
      const sessionData = this.sessions.get(sessionId);
-     const timeNow = Date.now();
-     console.log('Time now: ', timeNow);
-     const expiresAt = sessionData.expiresAt;
-     console.log('expiresat:', expiresAt); // Assuming sessionData.expiresAt is a Unix timestamp
-     if (timeNow >= expiresAt) {
+     const timeNow = Math.floor(Date.now() / 1000);
+
+     if (timeNow >= sessionData.expiresAt) {
        this.deleteSession(sessionId);
-       return false;
+        return false;
      }
-     return true;
+
+       try {
+         await authenticateJwt(sessionData.jwt);
+         return true;
+       } catch (error) {
+         this.deleteSession(sessionId);
+         return false;
+       }
+     
    }
  }
 
