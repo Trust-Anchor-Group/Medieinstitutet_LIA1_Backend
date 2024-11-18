@@ -4,12 +4,14 @@ import ErrorResponse from "../models/ErrorResponseModel.mjs";
 import { createAccount, verifyEmailService, loginService, userInfo, refresh, contractInfo } from "../services/externalApiServices.mjs";
 import CookieHandler from "../utilities/CookieHandler.mjs";
 import  config  from '../config/config.mjs';
+import { sessionStore } from '../utilities/SessionStore.mjs';
 
 /**
  * @desc Register user
  * @route POST /api/v1/auth/register
  * @access Public
  */
+
 export const register = asyncHandler(async (req, res, next) => {
     try {
         const response = await createAccount(req.body);
@@ -64,13 +66,13 @@ export const verifyEmail = asyncHandler(async (req, res, next) => {
 export const login = asyncHandler(async (req, res, next) => {
     try {
         const data = await loginService({...req.body, jwtSeconds: config.jwtSeconds});
-        const cookie = new CookieHandler(res);
-        cookie.setCookie('auth', {
-            jwt: data.jwt,
-            expires: data.expires
-        });
+        const sessionId = sessionStore.createSession(data.jwt, data.expires);
 
-        console.log("login data", data)
+        console.log('session store is alive?', sessionStore.sessions);
+       
+        const cookie = new CookieHandler(res);
+        cookie.setCookie('session', {sessionId} );
+
         res.status(200).json(new ResponseModel(200, 'Login successful', data));
     } catch (error) {
         next(error);
@@ -83,8 +85,19 @@ export const login = asyncHandler(async (req, res, next) => {
  * @access Public
  */
 export const logout = asyncHandler(async (req, res, next) => {
-    const cookie = new CookieHandler(res);
-    cookie.deleteCookie('auth');
+
+const cookie = req.cookies.session;
+let cookieData = JSON.parse(cookie);
+
+console.log("cookieData", cookieData);
+
+
+sessionStore.deleteSession(cookieData.sessionId)
+const newCookie = new CookieHandler(res);
+
+newCookie.deleteCookie('session');
+console.log("session store id empty?", sessionStore.sessions)
+
     res.status(200).json(new ResponseModel(200, 'Logout successful', {}));
 });
 
@@ -94,13 +107,17 @@ export const logout = asyncHandler(async (req, res, next) => {
  * @access Private
  */
 export const accountInfo = asyncHandler(async (req, res, next) => {
-
-    const cookie = req.cookies.auth;
+    console.log("account info")
+    const cookie = req.cookies.session;
     let cookieData = JSON.parse(cookie);
 
+    const getSession = sessionStore.getSession(
+        cookieData.sessionId
+    );
+    console.log("get session in account Info", getSession);
     try {
-        const data = await userInfo(cookieData.jwt);
-        res.status(200).json(new ResponseModel(200, 'User info', data));
+        const response = await userInfo(getSession.jwt);
+        res.status(200).json(new ResponseModel(200, 'User info', response));
     } catch (error) {
         next(error);
     }
@@ -112,12 +129,7 @@ export const accountInfo = asyncHandler(async (req, res, next) => {
  * @access Private
  */
 export const checkSession = asyncHandler(async (req, res, next) => {
-    const cookie = req.cookies.auth;
-    let cookieData = JSON.parse(cookie);
-    res.status(200).json(new ResponseModel(200, 'User is authenticated', {
-        authenticated: true,
-        expires: cookieData.expires
-    }));
+    res.status(200).json(new ResponseModel(200, 'User is authenticated'));
 });
 
 /**
@@ -138,6 +150,8 @@ export const refreshToken = asyncHandler(async (req, res, next) => {
             jwt: response.jwt,
             expires: response.expires
         });
+        console.log("refresh token response", response);
+
         res.status(200).json(new ResponseModel(200, 'Access token refreshed', response));
     } catch (error) {
         next(error);
