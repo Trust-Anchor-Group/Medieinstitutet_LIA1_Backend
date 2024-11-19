@@ -1,3 +1,5 @@
+// middleware/asyncHandler.mjs
+
 /**
  * @desc Wrapper to handle asynchronous functions to automatically handle error
  * @param {*} fn 

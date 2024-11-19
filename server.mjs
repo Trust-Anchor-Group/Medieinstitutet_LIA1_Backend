@@ -1,3 +1,4 @@
+// server.mjs
 // ============================================================
 // = IMPORTS
 // ============================================================
@@ -9,29 +10,34 @@ import xss from 'xss-clean';
 import hpp from 'hpp';
 import { generalLimiter } from './middleware/limitHandler.mjs';
 import authRouter from './routes/auth-routes.mjs';
+import contractRouter from './routes/contract-routes.mjs';
 import config from './config/config.mjs';
 import { errorHandler } from './middleware/errorHandler.mjs';
 import cookieParser from 'cookie-parser';
 import winston from 'winston';
 import './listeners/index.mjs';
+import DataInitializationService from './services/dataInitializationService.mjs';
 
 // ============================================================
 // = LOGGER CONFIGURATION
 // ============================================================
 const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.printf(({ timestamp, level, message }) => {
-      return `${timestamp} ${level}: ${message}`;
-    })
-  ),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' })
-  ]
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.printf(({ timestamp, level, message }) => {
+            return `${timestamp} ${level}: ${message}`;
+        })
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'error.log', level: 'error' }),
+        new winston.transports.File({ filename: 'combined.log' })
+    ]
 });
+
+// Initialize services
+const dataInitService = new DataInitializationService(logger);
 
 const app = express();
 
@@ -40,7 +46,6 @@ const app = express();
 // ============================================================
 // Body parser
 app.use(express.json());
-
 app.use(cookieParser());
 
 // Enable CORS for specified origin
@@ -73,27 +78,42 @@ app.get('/', (req, res) => {
 });
 
 // Endpoints
-app.use('/api/v1/auth', authRouter)
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/contracts', contractRouter);
 
 // ============================================================
 // = ERROR HANDLING
 // ============================================================
 app.use((err, req, res, next) => {
-  errorHandler(err, req, res, next, logger);
+    errorHandler(err, req, res, next, logger);
 });
 
 // ============================================================
 // = SERVER INITIALIZATION
 // ============================================================
-const PORT = process.env.PORT || 5001;
-const SERVER = app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+    try {
+        // Initialize data directory and required files
+        await dataInitService.initialize();
 
-// Periodic server status logging
-setInterval(() => {
-  logger.info('Server is still running');
-}, 300000); // Log every 5 minutes
+        const PORT = process.env.PORT || 5001;
+        const SERVER = app.listen(PORT, () => {
+            logger.info(`Server running on port ${PORT}`);
+        });
+
+        // Periodic server status logging
+        setInterval(() => {
+            logger.info('Server is still running');
+        }, 300000);
+
+    } catch (error) {
+        logger.error('Failed to start server:', error);
+        process.exit(1);
+    }
+};
+
+// Start the server
+startServer();
 
 // ============================================================
 // = UNHANDLED REJECTION HANDLER

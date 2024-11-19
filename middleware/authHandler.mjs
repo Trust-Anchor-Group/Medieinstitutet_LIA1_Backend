@@ -1,3 +1,4 @@
+// middleware/authHandler.mjs
 import ErrorResponse from '../models/ErrorResponseModel.mjs';
 import { authenticateJwt } from '../services/externalApiServices.mjs';
 import CookieHandler from '../utilities/CookieHandler.mjs';

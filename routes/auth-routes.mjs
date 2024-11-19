@@ -1,6 +1,7 @@
+// routes/auth-routes.mjs
 import express from "express";
 import { loginLimiter, registerLimiter } from "../middleware/limitHandler.mjs";
-import { accountInfo, login, logout, register, verifyEmail, checkSession, refreshToken, getId, ids, getReqIdAttr, getAlgorithms, registerId } from '../controllers/auth-controller.mjs'
+import { accountInfo, login, logout, register, verifyEmail, checkSession, refreshToken, getId, ids, getReqIdAttr, getAlgorithms, registerId } from '../controllers/auth-controller.mjs';
 import { protect } from "../middleware/authHandler.mjs";
 
 const router = express.Router();

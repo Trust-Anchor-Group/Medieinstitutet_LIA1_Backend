@@ -1,3 +1,4 @@
+// models/ResponseModel.mjs
 export default class ResponseModel {
 
     constructor(statusCode = 404, message = '', data = null) {
