@@ -1,11 +1,7 @@
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
-<<<<<<< HEAD
-import { createAccount, verifyEmailService, loginService, userInfo, refresh, contractInfo } from "../services/externalApiServices.mjs";
-=======
 import { createAccount, verifyEmailService, loginService, userInfo, refresh, getIds, getIdReqAttributes, fetchAlgorithms, createId, getKeyData, createKey, getIdentity } from "../services/externalApiServices.mjs";
->>>>>>> c065ea3a4b9b6a1c171af4b9104845ef4144d57f
 import CookieHandler from "../utilities/CookieHandler.mjs";
 import generateHash from "../utilities/hashUtils.mjs";
 import config from "../config/config.mjs";
@@ -162,28 +158,6 @@ export const refreshToken = asyncHandler(async (req, res, next) => {
     }
 });
 
-<<<<<<< HEAD
-export const getContract = asyncHandler(async (req, res, next) => {
-    
-    const cookieAuth = req.cookies.auth;
-    const cookieData = JSON.parse(cookieAuth);
-    const {contractId} = req.body;
-
-try {
-        const data = await contractInfo(
-            contractId,
-          cookieData.jwt
-        );
-        res
-          .status(200)
-          .json(new ResponseModel(200, "successfully fetched contract data", data));
-} catch (error) {
-    next(error);
-}
-
-
-})
-=======
 /**
  * @desc Get users IDs
  * @route GET /api/v1/auth/ids
@@ -357,4 +331,3 @@ export const getId = asyncHandler(async (req, res, next) => {
         next(error);
     }
 });
->>>>>>> c065ea3a4b9b6a1c171af4b9104845ef4144d57f

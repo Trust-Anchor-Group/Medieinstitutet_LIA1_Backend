@@ -282,50 +282,16 @@ export const refresh = async (jwt, seconds) => {
     }
 };
 
-<<<<<<< HEAD
-export const contractInfo = async (contractId, jwt) => {
-    const {host} = config.externalApi;
-    const url = `https://${host}/Agent/Legal/GetContract`;
-=======
 export const getIds = async (jwt, offset = null, maxCount = null) => {
     const { host } = config.externalApi;
     const url = `https://${host}/Agent/Legal/GetIdentities`;
     const payload = { offset, maxCount }
->>>>>>> c065ea3a4b9b6a1c171af4b9104845ef4144d57f
 
     try {
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-<<<<<<< HEAD
-                "Authorization": `Bearer ${jwt}`    
-            },
-            body: JSON.stringify({contractId})
-        })
-
-        if (!response.ok) {
-          const contentType = response.headers.get('Content-Type');
-
-          let errorBody;
-
-          if (contentType && contentType.includes('application/json')) {
-            errorBody = await response.json();
-          } else {
-            errorBody = await response.text();
-          }
-          throw new ErrorResponse(
-            response.status,
-            errorBody.message || errorBody,
-            'external'
-          );
-        }
-        
-        
-        return  await response.json();
-
-        
-=======
                 'Authorization': `Bearer ${jwt}`
             },
             body: JSON.stringify(payload)
@@ -381,16 +347,12 @@ export const getIdReqAttributes = async (jwt) => {
         }
 
         return await response.json();
->>>>>>> c065ea3a4b9b6a1c171af4b9104845ef4144d57f
     } catch (error) {
         if (!(error instanceof ErrorResponse)) {
             throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
         }
         throw error;
     }
-<<<<<<< HEAD
-
-=======
 }
 
 export const fetchAlgorithms = async (jwt) => {
@@ -638,6 +600,5 @@ export const getIdentity = async (id, jwt) => {
 
         throw error;
     }
->>>>>>> c065ea3a4b9b6a1c171af4b9104845ef4144d57f
 
 }
