@@ -113,8 +113,19 @@ export const accountInfo = asyncHandler(async (req, res, next) => {
 
     try {
         const userData = await userInfo(cookieData.jwt);
-        const userIDs = await getIds(cookieData.jwt);
-        const payload = { ...userData, id: userIDs.Identities[userIDs.Identities.length - 1].id }
+
+        let userIDs;
+        try {
+            userIDs = await getIds(cookieData.jwt);
+        } catch (error) {
+            console.error('Error fetching user IDs:', error.message);
+        }
+
+        const id = userIDs?.Identities?.length
+            ? userIDs.Identities[userIDs.Identities.length - 1].id
+            : null;
+
+        const payload = { ...userData, id }
         res.status(200).json(new ResponseModel(200, 'User info', payload));
     } catch (error) {
         next(error);
