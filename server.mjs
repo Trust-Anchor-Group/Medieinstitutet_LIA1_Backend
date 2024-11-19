@@ -17,6 +17,7 @@ import cookieParser from 'cookie-parser';
 import winston from 'winston';
 import './listeners/index.mjs';
 import DataInitializationService from './services/dataInitializationService.mjs';
+import signRouter from './routes/sign-routes.mjs';
 
 // ============================================================
 // = LOGGER CONFIGURATION
@@ -80,6 +81,7 @@ app.get('/', (req, res) => {
 // Endpoints
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/contracts', contractRouter);
+app.use('/api/v1/sign', signRouter);
 
 // ============================================================
 // = ERROR HANDLING
