@@ -330,10 +330,10 @@ export const getIds = async (jwt, offset = null, maxCount = null) => {
 export const createContract = async (contractData, jwt) => {
     const { host } = config.externalApi;
     const url = `https://${host}/Agent/Legal/CreateContract`;
-    
+
     try {
         const formattedData = {
-            ...contractData,  
+            ...contractData,
             Parts: contractData.Parts?.map(part => ({
                 role: part.role,
                 legalId: part.id
@@ -342,7 +342,7 @@ export const createContract = async (contractData, jwt) => {
 
         console.log("External API Service: Sending request to:", url);
         console.log("External API Service: Request payload:", JSON.stringify(formattedData, null, 2));
-        
+
         const response = await fetch(url, {
             method: 'POST',
             headers: {
@@ -352,23 +352,23 @@ export const createContract = async (contractData, jwt) => {
             body: JSON.stringify(formattedData)
         });
 
-        
+
         if (!response.ok) {
             const contentType = response.headers.get('Content-Type');
             let errorBody;
-            
+
             if (contentType && contentType.includes('application/json')) {
                 errorBody = await response.json();
             } else {
                 errorBody = await response.text();
             }
-            
+
             console.error('Contract creation failed:', {
                 status: response.status,
                 error: errorBody,
                 sentData: formattedData
             });
-            
+
             console.log("External API Service: Error response:", errorBody);
             throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
         }
@@ -380,7 +380,7 @@ export const createContract = async (contractData, jwt) => {
     } catch (error) {
         console.log("External API Service: Caught error:", error);
         console.error('Contract creation error:', error);
-        
+
         if (!(error instanceof ErrorResponse)) {
             throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
         }
@@ -398,7 +398,7 @@ export const createContract = async (contractData, jwt) => {
 export const getContract = async (contractId, format, jwt) => {
     const { host } = config.externalApi;
     const url = `https://${host}/Agent/Legal/GetContract`;
-    
+
     const payload = {
         contractId,
         ...(format && { format }) // Only include format if provided
@@ -449,7 +449,7 @@ export const getIdReqAttributes = async (jwt) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${jwt}`
             },
-            body: JSON.stringify(contractData)
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -460,7 +460,7 @@ export const getIdReqAttributes = async (jwt) => {
             } else {
                 errorBody = await response.text();
             }
-            
+
             throw new ErrorResponse(response.status, errorBody.message || errorBody, 'external');
         }
 
@@ -470,7 +470,7 @@ export const getIdReqAttributes = async (jwt) => {
     } catch (error) {
         console.log("External API Service: Caught error:", error);
         console.error('Contract creation error:', error);
-        
+
         if (!(error instanceof ErrorResponse)) {
             throw new ErrorResponse(500, error.message || 'An unexpected error occurred', 'external');
         }
