@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { authenticateJwt, refresh } from '../services/externalApiServices.mjs';
 import config from '../config/config.mjs';
+import { sseConnectionStore } from './SSEConnectionStore.mjs';
 
  class SessionStore {
    constructor() {
@@ -26,12 +27,12 @@ import config from '../config/config.mjs';
    //Delete a session
    deleteSession(sessionId) {
      const session = this.sessions.get(sessionId);
-     console.log("delete session fired", session);
      
      if (session && session.refreshTimer) {
        clearTimeout(session.refreshTimer);
-  
-     }
+       
+      }
+      console.log("delete session fired", session);
 
      return this.sessions.delete(sessionId);
    }
@@ -55,6 +56,11 @@ import config from '../config/config.mjs';
       this.setupRefreshTimer(newSessionId, session);
       this.sessions.delete(oldSessionId);
       this.sessions.set(newSessionId, session )
+
+      sseConnectionStore.notifyClient(oldSessionId, {
+        type:"session-refresh",
+        sessionId: newSessionId
+      });
    
       return newSessionId;
    }
