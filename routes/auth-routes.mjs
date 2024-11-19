@@ -11,6 +11,7 @@ import {
   getContract,
 } from '../controllers/auth-controller.mjs';
 import { protect } from "../middleware/authHandler.mjs";
+import { handleSEEConnection } from "../controllers/sse-controller.mjs";
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.post('/register', registerLimiter, register);
 router.post('/login', loginLimiter, login);
 router.get('/logout', logout);
 router.post('/verify-email', verifyEmail); // ! Add limiter?
+router.get('/session-events', protect, handleSEEConnection);
 router.get('/account-info', protect, accountInfo);
 router.get('/session-status', protect, checkSession);
 router.get('/refresh', protect, refreshToken);
