@@ -332,13 +332,11 @@ export const createContract = async (contractData, jwt) => {
     const url = `https://${host}/Agent/Legal/CreateContract`;
     
     try {
-        // Create a new object to avoid modifying the input directly
         const formattedData = {
-            ...contractData,
-            // Transform Parts array to use legalId instead of id
+            ...contractData,  
             Parts: contractData.Parts?.map(part => ({
                 role: part.role,
-                legalId: part.id  // Convert 'id' to 'legalId'
+                legalId: part.id
             })) || []
         };
 
@@ -351,10 +349,10 @@ export const createContract = async (contractData, jwt) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${jwt}`
             },
-            body: JSON.stringify(formattedData)  // Send formatted data
+            body: JSON.stringify(formattedData)
         });
 
-        // Rest of the function remains the same...
+        
         if (!response.ok) {
             const contentType = response.headers.get('Content-Type');
             let errorBody;
