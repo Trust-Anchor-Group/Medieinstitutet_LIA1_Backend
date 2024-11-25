@@ -1,4 +1,5 @@
 // controllers/contract-controller.mjs
+
 import { asyncHandler } from "../middleware/asyncHandler.mjs";
 import ResponseModel from "../models/ResponseModel.mjs";
 import ErrorResponse from "../models/ErrorResponseModel.mjs";
@@ -6,11 +7,13 @@ import { createContract, getContract } from "../services/externalApiServices.mjs
 import ContractServices from '../services/contractServices.mjs';
 import winston from 'winston';
 
-// Initialize logger for contract controller
+// Configure Winston logger with timestamp formatting and multiple transports
+// This enables both console and file logging for better debugging capabilities
 const logger = winston.createLogger({
     level: 'info',
     format: winston.format.combine(
         winston.format.timestamp(),
+        // Custom format to ensure consistent log message structure
         winston.format.printf(({ timestamp, level, message }) => {
             return `${timestamp} ${level}: ${message}`;
         })
@@ -21,6 +24,7 @@ const logger = winston.createLogger({
     ]
 });
 
+// Initialize contract services with logger dependency
 const contractServices = new ContractServices(logger);
 
 /**
@@ -40,12 +44,17 @@ const contractServices = new ContractServices(logger);
  */
 export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
     logger.info("Starting contract creation");
+    
+    // Authentication check using cookies
+    // Critical for security - ensures only authenticated users can create contracts
     const cookie = req.cookies.auth;
     if (!cookie) {
         logger.error("No auth cookie found");
         return next(new ErrorResponse(401, 'Authentication required', 'internal'));
     }
 
+    // Parse authentication cookie data
+    // Try-catch block necessary as cookie parsing can fail if tampered with
     let cookieData;
     try {
         cookieData = JSON.parse(cookie);
@@ -58,7 +67,8 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
     try {
         logger.info("Received request body:", JSON.stringify(req.body, null, 2));
         
-        // Validate required fields
+        // Validate all required fields upfront to fail fast
+        // This prevents unnecessary processing if data is incomplete
         const requiredFields = [
             'amount', 'currency', 'installmentInterval', 
             'interestPerInstallment', 'installmentAmount', 
@@ -71,14 +81,17 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
             }
         }
 
-        // Initialize Parts array based on roles
+        // Initialize contract participants array
+        // Parts array represents different roles in the contract
         const parts = [];
         const { roles } = req.body;
 
-        // Check if any role is provided
+        // Role validation logic
+        // Ensures contract roles are assigned consistently - either all or none
         const hasAnyRole = Object.values(roles).some(role => role !== '');
 
-        // If any role is provided, all must be provided
+        // If any role is provided, enforce that all required roles are present
+        // This maintains contract integrity by preventing partial role assignments
         if (hasAnyRole) {
             const requiredRoles = ['creator', 'borrower', 'lender', 'trustProvider'];
             const missingRoles = requiredRoles.filter(role => !roles[role]);
@@ -91,7 +104,7 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
                 );
             }
 
-            // Add all roles to parts
+            // Map internal role representations to external API format
             parts.push(
                 { role: 'Creator', id: roles.creator },
                 { role: 'Borrower', id: roles.borrower },
@@ -100,12 +113,14 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
             );
         }
 
-        // Format contract data according to the external API format
+        // Transform internal contract data to external API format
+        // Template ID is hardcoded - consider moving to configuration
         const contractData = {
             templateId: "2eb3a4a6-2fd2-6080-dc11-7cf88434c612@legal.mateo.lab.tagroot.io",
             visibility: "Public",
             Parts: parts,
             Parameters: [
+                // Convert numerical values to strings as required by external API
                 {
                     name: "Amount",
                     value: req.body.amount.toString()
@@ -137,11 +152,14 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
             ]
         };
 
+        // Call external API to create contract
+        // Uses JWT from cookie for authentication
         logger.info("Calling external API with data:", JSON.stringify(contractData, null, 2));
         const contractResponse = await createContract(contractData, cookieData.jwt);
         logger.info("Contract created successfully", contractResponse);
 
-        // ! Debugger save to json
+        // Debug logging to track contract response structure
+        // Helps identify API response changes or issues
         logger.info("Contract response structure:", {
             hasData: !!contractResponse.data,
             hasDirectContract: !!contractResponse.Contract,
@@ -149,14 +167,15 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
             fullResponse: JSON.stringify(contractResponse, null, 2)
         });
 
-        // Save the contract ID
+        // Persist contract ID for future reference
+        // Note: Contract creation can succeed but storage might fail
         if (contractResponse.Contract?.id) { 
             try {
                 await contractServices.addContractId(contractResponse.Contract.id);
                 logger.info("Contract ID saved to local storage");
             } catch (error) {
                 logger.error("Error saving contract ID:", error);
-                // Error logging detail
+                // Detailed error logging for debugging storage issues
                 logger.error("Error details:", {
                     error: error.message,
                     contractId: contractResponse.Contract.id,
@@ -178,6 +197,7 @@ export const createMicroLoanContract = asyncHandler(async (req, res, next) => {
  * @access Private
  */
 export const getContractDetails = asyncHandler(async (req, res, next) => {
+    // Authentication validation follows same pattern as create endpoint
     const cookie = req.cookies.auth;
     if (!cookie) {
         return next(new ErrorResponse(401, 'Authentication required', 'internal'));
@@ -191,6 +211,7 @@ export const getContractDetails = asyncHandler(async (req, res, next) => {
     }
 
     try {
+        // Extract path parameter and optional format query parameter
         const { contractId } = req.params;
         const { format } = req.query;
 
@@ -198,6 +219,8 @@ export const getContractDetails = asyncHandler(async (req, res, next) => {
             throw new ErrorResponse(400, 'Contract ID is required', 'internal');
         }
 
+        // Fetch contract details using external service
+        // Format parameter allows different response structures
         const contractResponse = await getContract(contractId, format, cookieData.jwt);
         res.status(200).json(new ResponseModel(200, 'Contract details retrieved successfully', contractResponse));
     } catch (error) {
@@ -213,6 +236,7 @@ export const getContractDetails = asyncHandler(async (req, res, next) => {
 export const getAvailableContracts = asyncHandler(async (req, res, next) => {
     logger.info('Starting getAvailableContracts');
     
+    // Authentication check
     const cookie = req.cookies.auth;
     if (!cookie) {
         logger.error('No auth cookie found');
@@ -223,12 +247,13 @@ export const getAvailableContracts = asyncHandler(async (req, res, next) => {
         const cookieData = JSON.parse(cookie);
         logger.info('Successfully parsed auth cookie');
 
-        // Get contract IDs using the service
+        // Retrieve stored contract IDs
         logger.info('Fetching contract IDs');
         const contractIds = await contractServices.getContractIds();
         logger.info('Retrieved contract IDs:', contractIds);
 
-        // Fetch contract details for each ID
+        // Fetch detailed contract information for each ID
+        // Uses Promise.all for parallel processing to improve performance
         logger.info('Starting to fetch individual contract details');
         const contractPromises = contractIds.map(async contract => {
             try {
@@ -239,6 +264,7 @@ export const getAvailableContracts = asyncHandler(async (req, res, next) => {
             }
         });
         
+        // Filter out failed contract fetches to handle partial failures gracefully
         const contracts = await Promise.all(contractPromises);
         const validContracts = contracts.filter(contract => contract !== null);
         
@@ -257,6 +283,7 @@ export const getAvailableContracts = asyncHandler(async (req, res, next) => {
  * @access Private
  */
 export const signContract = asyncHandler(async (req, res, next) => {
+    // Authentication check
     const cookie = req.cookies.auth;
     if (!cookie) {
         return next(new ErrorResponse(401, 'Authentication required', 'internal'));
@@ -266,10 +293,11 @@ export const signContract = asyncHandler(async (req, res, next) => {
         const cookieData = JSON.parse(cookie);
         const { contractId, legalId, role, keyId, keyPassword, accountPassword } = req.body;
 
-        // Generate nonce for request
+        // Generate cryptographically secure nonce for request
+        // Prevents replay attacks on signing requests
         const nonce = crypto.randomBytes(32).toString('base64');
 
-        // Create signing request
+        // Submit signing request to external service
         const response = await sign(
             contractId,
             legalId,
